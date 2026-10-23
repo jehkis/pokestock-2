@@ -1,0 +1,476 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Brand from '../components/Brand.astro';
+import CategoryTabs from '../components/CategoryTabs.astro';
+import ListStates from '../components/ListStates.astro';
+import Modal from '../components/Modal.astro';
+import { KATEGORIAT, KUNNOT } from '../lib/types';
+
+const columns = [
+  { key: 'nimi', label: 'Kortti' },
+  { key: 'kategoria', label: 'Kategoria' },
+  { key: 'kunto', label: 'Kunto' },
+  { key: 'arvo', label: 'Arvo', num: true },
+];
+---
+<Layout title="PokeStock — Ylläpito">
+  <div class="hero admin-hero">
+    <div>
+      <Brand />
+      <div class="tag">Ylläpito — hallinta, tarjoukset</div>
+      <div style="margin-top:6px;"><a href="/">← Julkiseen kauppanäkymään</a></div>
+      <div class="conn" id="connStatus"><span class="dot"></span><span id="connLabel">Yhdistetään rajapintaan…</span></div>
+    </div>
+    <div class="stat-block">
+      <div class="value" id="totalValue">—</div>
+      <div class="label">kokoelman arvo, myymättä olevat</div>
+      <div class="stat-sub"><span><b id="totalCount">0</b> korttia</span><span><b id="soldCount">0</b> myyty</span></div>
+    </div>
+  </div>
+
+  <div class="panel tarjous-panel" id="tarjousPanel" style="display:none;">
+    <div class="tarjous-head">
+      <strong>Odottavat tarjoukset</strong>
+      <span class="chip" id="tarjousCount">0</span>
+    </div>
+    <div id="tarjousList"></div>
+  </div>
+
+  <div class="toolbar">
+    <input class="search" id="searchInput" type="text" placeholder="Hae kortin nimellä tai numerolla…" />
+    <button class="btn secondary" id="refreshBtn" type="button">↻ Päivitä</button>
+    <button class="btn secondary" id="paivitaHinnatBtn" type="button">💲 Päivitä kaikki hinnat</button>
+    <button class="btn" id="addBtn" type="button">+ Lisää kortti</button>
+  </div>
+
+  <CategoryTabs />
+
+  <div class="panel">
+    <table id="cardTable" style="display:none;">
+      <thead>
+        <tr>
+          {columns.map((c) => (
+            <th class:list={{ num: c.num }} data-sort={c.key}>{c.label} <span class="arrow" data-arrow={c.key}></span></th>
+          ))}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <ListStates />
+  </div>
+
+  <Modal slot="after" id="addModal" title="Lisää kortti" sub="Kortti tallentuu suoraan tietokantaan.">
+    <form id="addForm">
+      <div class="field"><label for="f_nimi">Kortin nimi</label><input id="f_nimi" required placeholder="esim. Charizard VMAX" /></div>
+      <div class="field"><label for="f_numero">Numero</label><input id="f_numero" placeholder="esim. 020/189" /></div>
+      <div class="field">
+        <label for="f_kategoria">Kategoria</label>
+        <select id="f_kategoria">{KATEGORIAT.map((k) => <option>{k}</option>)}</select>
+      </div>
+      <div class="field">
+        <label for="f_kunto">Kunto</label>
+        <select id="f_kunto">{KUNNOT.map((k) => <option>{k}</option>)}</select>
+      </div>
+      <div class="field">
+        <label for="f_arvo">Arvo (€)</label>
+        <div style="display:flex; gap:8px;">
+          <input id="f_arvo" type="number" step="0.01" min="0" required placeholder="0.00" style="flex:1;" />
+          <button type="button" class="btn secondary" id="hakuBtn" style="white-space:nowrap;">Hae hinta-arvio</button>
+        </div>
+        <label class="holo-check">
+          <input type="checkbox" id="f_holo" /> Holo / reverse holo -kortti (käytä holo-hintaa)
+        </label>
+        <div class="hint-inline" id="hakuTulos" style="display:none;"></div>
+      </div>
+      <div class="form-error" id="formError"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" data-close>Peruuta</button>
+        <button type="submit" class="btn" id="submitBtn">Lisää varastoon</button>
+      </div>
+    </form>
+  </Modal>
+</Layout>
+
+<style is:global>
+  .admin-hero { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px; padding-bottom: 22px; }
+  .admin-hero .tag { font-size: 12.5px; margin-top: 0; }
+  .conn { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
+  .conn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brick); }
+  .conn[data-ok="true"] .dot { background: var(--teal); }
+  .stat-block { text-align: right; }
+  .stat-block .value { font-family: 'Fraunces', serif; font-weight: 600; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .stat-block .label { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+  .stat-sub { display: flex; gap: 18px; margin-top: 6px; justify-content: flex-end; font-size: 12.5px; color: var(--ink-soft); }
+  .stat-sub b { color: var(--ink); font-weight: 600; }
+
+  .tarjous-panel { margin-top: 18px; border-top: 1px solid var(--ink); border-radius: 6px; }
+  .tarjous-head { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+  .tarjous-head strong { font-family: 'Fraunces', serif; font-size: 16px; }
+  .tarjous { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .tarjous .meta { font-size: 12.5px; color: var(--ink-soft); }
+  .tarjous .meta b { color: var(--ink); }
+  .tarjous .viesti { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+  .tarjous .actions { white-space: nowrap; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead th { text-align: left; font-weight: 600; color: var(--ink-soft); font-size: 11.5px; letter-spacing: 0.02em; padding: 12px 16px; border-bottom: 1px solid var(--line); cursor: pointer; white-space: nowrap; }
+  thead th:hover { color: var(--ink); }
+  thead th.num { text-align: right; }
+  thead th .arrow { font-size: 10px; margin-left: 3px; color: var(--gold-deep); }
+  tbody td { padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.sold { opacity: 0.45; }
+  tbody tr.sold .nimi { text-decoration: line-through; }
+  .num-cell { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--ink-soft); }
+  td.arvo { text-align: right; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+  .row-actions { text-align: right; white-space: nowrap; }
+  .icon-btn { font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: none; border: 1px solid var(--line); border-radius: var(--radius); padding: 5px 10px; color: var(--ink-soft); margin-left: 6px; text-decoration: none; }
+  .icon-btn:hover { border-color: var(--teal); color: var(--teal); }
+  .icon-btn.sold-btn[data-sold="true"] { color: var(--brick); border-color: var(--brick); background: var(--brick-bg); }
+  .icon-btn.del-btn:hover, .icon-btn.reject { border-color: var(--brick); color: var(--brick); }
+  .icon-btn.accept { border-color: var(--teal); color: var(--teal); }
+
+  .modal h2 { font-size: 21px; margin-bottom: 4px; }
+  .holo-check { display: flex !important; align-items: center; gap: 6px; font-size: 12px !important; margin-top: 8px; font-weight: 400 !important; }
+  .holo-check input { width: auto !important; }
+  .hint-inline { font-size: 11.5px; margin-top: 6px; line-height: 1.4; }
+  .hint-inline.ok { color: var(--teal); }
+  .hint-inline.miss { color: var(--ink-soft); }
+  .hint-inline b { color: var(--ink); }
+
+  @media (max-width: 640px) {
+    .admin-hero { align-items: flex-start; }
+    .stat-block { text-align: left; }
+    .stat-sub { justify-content: flex-start; }
+    thead th:nth-child(2), tbody td:nth-child(2) { display: none; }
+  }
+</style>
+
+<script>
+  import { ApiError, apiRequest } from '../lib/api';
+  import { $, setupModal, showState } from '../lib/dom';
+  import { cardmarketUrl, escapeHtml, eur } from '../lib/format';
+  import { filterCards, renderTabs } from '../lib/tabs';
+  import type { Card, Tarjous } from '../lib/types';
+
+  const API = '/api/cards';
+  const KEY_STORAGE = 'pokestock_admin_key';
+
+  let allCards: Card[] = [];
+  let activeCategory = 'Kaikki';
+  let searchTerm = '';
+  let sortKey: keyof Card = 'arvo';
+  let sortDir = -1;
+  let searchDebounce: ReturnType<typeof setTimeout> | undefined;
+
+  const table = $('cardTable');
+  const tbody = $('tbody');
+  const modal = setupModal('addModal');
+
+  function setConn(ok: boolean, label: string) {
+    $('connStatus').setAttribute('data-ok', String(ok));
+    $('connLabel').textContent = label;
+  }
+
+  function getAdminKey() {
+    let key = sessionStorage.getItem(KEY_STORAGE);
+    if (!key) {
+      key = prompt('Ylläpitäjän avain:') || '';
+      if (key) sessionStorage.setItem(KEY_STORAGE, key);
+    }
+    return key;
+  }
+
+  async function adminRequest<T>(path: string, opts: RequestInit = {}) {
+    try {
+      return await apiRequest<T>(path, opts, { 'x-admin-key': getAdminKey() });
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        sessionStorage.removeItem(KEY_STORAGE);
+        throw new Error('Väärä ylläpitäjän avain. Yritä uudelleen (lataa sivu uudelleen).');
+      }
+      throw err;
+    }
+  }
+
+  async function loadCards() {
+    showState('loading');
+    table.style.display = 'none';
+    try {
+      allCards = await adminRequest<Card[]>(API);
+      setConn(true, 'Yhdistetty');
+      renderAll();
+    } catch (err) {
+      setConn(false, 'Ei yhteyttä rajapintaan');
+      showState('error', 'Korttien lataus epäonnistui: ' + (err as Error).message + ' — tarkista, että API-palvelin on käynnissä.');
+    }
+  }
+
+  function renderAll() {
+    renderTabs($('tabs'), allCards, activeCategory, (cat) => { activeCategory = cat; renderAll(); });
+    renderTable();
+    renderStats();
+  }
+
+  function getSorted() {
+    return filterCards(allCards, activeCategory, searchTerm).sort((a, b) => {
+      let av: any = a[sortKey], bv: any = b[sortKey];
+      if (typeof av === 'string') { av = av.toLowerCase(); bv = (bv || '').toLowerCase(); }
+      if (av < bv) return -1 * sortDir;
+      if (av > bv) return 1 * sortDir;
+      return 0;
+    });
+  }
+
+  function renderTable() {
+    const list = getSorted();
+    if (!list.length) {
+      table.style.display = 'none';
+      showState('empty');
+      return;
+    }
+    showState('none');
+    table.style.display = '';
+
+    document.querySelectorAll('[data-arrow]').forEach((a) => (a.textContent = ''));
+    const arrowEl = document.querySelector(`[data-arrow="${sortKey}"]`);
+    if (arrowEl) arrowEl.textContent = sortDir === 1 ? '▲' : '▼';
+
+    tbody.innerHTML = list.map((c) => {
+      const isSold = !!c.myyty?.tila;
+      return `
+        <tr class="${isSold ? 'sold' : ''}">
+          <td><div class="nimi">${escapeHtml(c.nimi)}</div><div class="num-cell">${escapeHtml(c.numero || '')}</div></td>
+          <td><span class="chip">${escapeHtml(c.kategoria)}</span></td>
+          <td>${escapeHtml(c.kunto || '—')}</td>
+          <td class="arvo">${eur(c.arvo)}</td>
+          <td class="row-actions">
+            <a class="icon-btn" href="${cardmarketUrl(c.nimi)}" target="_blank" rel="noopener noreferrer">Cardmarket ↗</a>
+            <button class="icon-btn sold-btn" data-sold="${isSold}" data-id="${c._id}">${isSold ? 'Myyty' : 'Merkitse myydyksi'}</button>
+            <button class="icon-btn del-btn" data-id="${c._id}">Poista</button>
+          </td>
+        </tr>`;
+    }).join('');
+
+    tbody.querySelectorAll<HTMLButtonElement>('.sold-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id!;
+        const nowSold = btn.dataset.sold === 'true';
+        btn.disabled = true;
+        try {
+          const updated = await adminRequest<Card>(`${API}/${id}/myyty`, { method: 'PATCH', body: JSON.stringify({ tila: !nowSold }) });
+          const idx = allCards.findIndex((c) => c._id === id);
+          if (idx >= 0) allCards[idx] = updated;
+          renderAll();
+        } catch (err) {
+          alert('Myyntitilan päivitys epäonnistui: ' + (err as Error).message);
+          btn.disabled = false;
+        }
+      });
+    });
+
+    tbody.querySelectorAll<HTMLButtonElement>('.del-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id!;
+        if (!confirm('Poistetaanko kortti pysyvästi?')) return;
+        btn.disabled = true;
+        try {
+          await adminRequest(`${API}/${id}`, { method: 'DELETE' });
+          allCards = allCards.filter((c) => c._id !== id);
+          renderAll();
+        } catch (err) {
+          alert('Poisto epäonnistui: ' + (err as Error).message);
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  function renderStats() {
+    const unsold = allCards.filter((c) => !c.myyty?.tila);
+    const total = unsold.reduce((s, c) => s + c.arvo, 0);
+    $('totalValue').textContent = eur(total);
+    $('totalCount').textContent = String(allCards.length);
+    $('soldCount').textContent = String(allCards.length - unsold.length);
+  }
+
+  document.querySelectorAll<HTMLElement>('thead th[data-sort]').forEach((th) => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort as keyof Card;
+      if (sortKey === key) sortDir *= -1;
+      else { sortKey = key; sortDir = key === 'arvo' ? -1 : 1; }
+      renderTable();
+    });
+  });
+
+  $('searchInput').addEventListener('input', (e) => {
+    searchTerm = (e.target as HTMLInputElement).value;
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(renderTable, 120);
+  });
+
+  $('refreshBtn').addEventListener('click', loadCards);
+
+  $('paivitaHinnatBtn').addEventListener('click', async () => {
+    const btn = $<HTMLButtonElement>('paivitaHinnatBtn');
+    if (!confirm(`Haetaan tuore hinta jokaiselle ${allCards.length} kortille TCGdexista. Tama voi kestaa muutaman minuutin. Jatketaanko?`)) return;
+
+    btn.disabled = true;
+    btn.textContent = '💲 Päivitetään… (voi kestää muutaman minuutin)';
+    try {
+      const tulos = await adminRequest<any>(`${API}/paivita-hinnat`, { method: 'POST' });
+      await loadCards();
+      let viesti = `Hinnat päivitetty: ${tulos.paivitetty}/${allCards.length} korttia.`;
+      if (tulos.tarkista?.length) viesti += `\n\nEpäilyttävä hintapudotus, EI päivitetty automaattisesti (${tulos.tarkista.length}):\n` + tulos.tarkista.map((k: any) => `${k.nimi} #${k.numero}: ${eur(k.vanha)} → ${eur(k.uusi)}?`).join('\n');
+      if (tulos.ei_loytynyt?.length) viesti += `\n\nEi löytynyt hintaa (${tulos.ei_loytynyt.length}): ` + tulos.ei_loytynyt.map((k: any) => `${k.nimi} #${k.numero}`).join(', ');
+      if (tulos.virhe?.length) viesti += `\n\nVirheitä (${tulos.virhe.length}): ` + tulos.virhe.map((k: any) => k.nimi).join(', ');
+      alert(viesti);
+    } catch (err) {
+      alert('Hintojen päivitys epäonnistui: ' + (err as Error).message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '💲 Päivitä kaikki hinnat';
+    }
+  });
+
+  $('addBtn').addEventListener('click', () => {
+    $('hakuTulos').style.display = 'none';
+    modal.open();
+  });
+
+  $('hakuBtn').addEventListener('click', async () => {
+    const nimi = $<HTMLInputElement>('f_nimi').value.trim();
+    const numero = $<HTMLInputElement>('f_numero').value.trim();
+    const holo = $<HTMLInputElement>('f_holo').checked;
+    const tulosEl = $('hakuTulos');
+    const btn = $<HTMLButtonElement>('hakuBtn');
+
+    const nayta = (luokka: 'ok' | 'miss', html: string) => {
+      tulosEl.className = 'hint-inline ' + luokka;
+      tulosEl.innerHTML = html;
+      tulosEl.style.display = 'block';
+    };
+
+    if (!nimi) { nayta('miss', 'Kirjoita ensin kortin nimi.'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Haetaan…';
+    tulosEl.style.display = 'none';
+
+    try {
+      const params = new URLSearchParams({ nimi });
+      if (numero) params.set('numero', numero);
+      if (holo) params.set('holo', 'true');
+      const result = await adminRequest<any>(`/api/hinta-haku?${params.toString()}`);
+
+      if (!result.loytyi) {
+        const samannimiset = (result.ehdotukset || []).map((e: any) => `${escapeHtml(e.nimi)} #${escapeHtml(e.numero)}`).join(', ');
+        nayta('miss', 'Ei löytynyt tällä nimellä ja numerolla — syötä hinta itse.' + (samannimiset ? `<br>Samannimisiä: ${samannimiset}` : ''));
+        return;
+      }
+
+      const p = result.paras;
+      const h = p.hinta;
+      const kortti = `<b>${escapeHtml(p.nimi)}</b> #${escapeHtml(p.numero)} — ${escapeHtml(p.setti || 'tuntematon setti')}`;
+
+      if (!h || h.arvo === null || h.arvo === undefined) {
+        nayta('miss', `Löytyi: ${kortti}, mutta Cardmarketissa ei ole hintaa tälle kortille — syötä hinta itse.`);
+        return;
+      }
+
+      $<HTMLInputElement>('f_arvo').value = h.arvo;
+      const pvm = h.paivitetty ? new Date(h.paivitetty).toLocaleDateString('fi-FI') : '?';
+      let teksti = `Löytyi: ${kortti}<br>Cardmarket (${h.variantti === 'holo' ? 'holo' : 'normaali'}, trendi): <b>${eur(h.arvo)}</b> · päivitetty ${pvm}`;
+      if (holo && h.variantti !== 'holo') teksti += '<br>Holo-hintaa ei löytynyt, käytetty normaalia hintaa.';
+      if (result.ehdotukset?.length) {
+        const muut = result.ehdotukset.map((e: any) => escapeHtml(e.setti || e.id)).join(', ');
+        teksti += `<br>Muita samannumeroisia: ${muut} — tarkista että setti on oikea.`;
+      }
+      nayta('ok', teksti);
+    } catch (err) {
+      nayta('miss', 'Haku epäonnistui: ' + escapeHtml((err as Error).message));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Hae hinta-arvio';
+    }
+  });
+
+  $<HTMLFormElement>('addForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const errEl = $('formError');
+    errEl.style.display = 'none';
+    const submitBtn = $<HTMLButtonElement>('submitBtn');
+    submitBtn.disabled = true;
+    const payload = {
+      nimi: $<HTMLInputElement>('f_nimi').value.trim(),
+      numero: $<HTMLInputElement>('f_numero').value.trim(),
+      kategoria: $<HTMLSelectElement>('f_kategoria').value,
+      kunto: $<HTMLSelectElement>('f_kunto').value,
+      arvo: parseFloat($<HTMLInputElement>('f_arvo').value) || 0,
+    };
+    try {
+      const created = await adminRequest<Card>(API, { method: 'POST', body: JSON.stringify(payload) });
+      allCards.push(created);
+      form.reset();
+      modal.close();
+      renderAll();
+    } catch (err) {
+      errEl.textContent = (err as Error).message;
+      errEl.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  async function loadTarjoukset() {
+    try {
+      const tarjoukset = await adminRequest<Tarjous[]>('/api/tarjoukset?tila=odottaa');
+      const panel = $('tarjousPanel');
+      const list = $('tarjousList');
+      $('tarjousCount').textContent = String(tarjoukset.length);
+
+      if (!tarjoukset.length) {
+        panel.style.display = 'none';
+        return;
+      }
+      panel.style.display = 'block';
+      list.innerHTML = tarjoukset.map((t) => `
+        <div class="tarjous">
+          <div>
+            <div class="nimi">${escapeHtml(t.kortti_id?.nimi || '(kortti poistettu)')} ${escapeHtml(t.kortti_id?.numero || '')}</div>
+            <div class="meta">
+              ${escapeHtml(t.ostajan_nimi)} — ${escapeHtml(t.ostajan_sahkoposti)} —
+              tarjous <b>${eur(t.tarjottu_hinta)}</b>
+              ${t.kortti_id ? ` (oma arvio ${eur(t.kortti_id.arvo)})` : ''}
+            </div>
+            ${t.ostajan_viesti ? `<div class="viesti">"${escapeHtml(t.ostajan_viesti)}"</div>` : ''}
+          </div>
+          <div class="actions">
+            <button class="icon-btn accept" data-action="hyvaksy" data-id="${t._id}">Hyväksy</button>
+            <button class="icon-btn reject" data-action="hylkaa" data-id="${t._id}">Hylkää</button>
+          </div>
+        </div>`).join('');
+
+      list.querySelectorAll<HTMLButtonElement>('button[data-action]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          try {
+            await adminRequest(`/api/tarjoukset/${btn.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ paatos: btn.dataset.action }) });
+            await loadTarjoukset();
+            await loadCards();
+          } catch (err) {
+            alert('Tarjouksen käsittely epäonnistui: ' + (err as Error).message);
+            btn.disabled = false;
+          }
+        });
+      });
+    } catch (err) {
+      console.error('Tarjousten lataus epäonnistui:', (err as Error).message);
+    }
+  }
+
+  loadCards();
+  loadTarjoukset();
+</script>

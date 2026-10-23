@@ -1,0 +1,16 @@
+---
+// Avataan/suljetaan lib/dom.ts:n setupModal-funktiolla. [data-close]-napit sulkevat.
+interface Props {
+  id: string;
+  title: string;
+  sub?: string;
+}
+const { id, title, sub = '' } = Astro.props;
+---
+<div class="overlay" id={id}>
+  <div class="modal">
+    <h2 id={`${id}Title`}>{title}</h2>
+    <p class="sub" id={`${id}Sub`}>{sub}</p>
+    <slot />
+  </div>
+</div>

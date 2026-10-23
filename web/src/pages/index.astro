@@ -1,0 +1,167 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Brand from '../components/Brand.astro';
+import CategoryTabs from '../components/CategoryTabs.astro';
+import ListStates from '../components/ListStates.astro';
+import Modal from '../components/Modal.astro';
+---
+<Layout title="PokeStock — Kauppa">
+  <div class="hero">
+    <Brand />
+    <div class="tag">Myynnissä olevat Pokémon-kortit — tee tarjous kortista, myyjä ottaa yhteyttä jos tarjous hyväksytään</div>
+    <div style="margin-top:6px;"><a href="/admin">Ylläpito →</a></div>
+  </div>
+
+  <div class="toolbar">
+    <input class="search" id="searchInput" type="text" placeholder="Hae kortin nimellä…" />
+  </div>
+
+  <CategoryTabs />
+
+  <div class="panel">
+    <div class="grid" id="grid" style="display:none;"></div>
+    <ListStates />
+  </div>
+
+  <footer>PokeStock — kortit ja hinnat viitteellisiä, lopullinen hinta sovitaan myyjän kanssa.</footer>
+
+  <Modal slot="after" id="offerModal" title="Tee tarjous">
+    <form id="offerForm">
+      <div class="field"><label for="f_nimi">Nimesi</label><input id="f_nimi" required placeholder="Etu- ja sukunimi" /></div>
+      <div class="field"><label for="f_email">Sähköpostisi</label><input id="f_email" type="email" required placeholder="nimi@esimerkki.fi" /></div>
+      <div class="field"><label for="f_hinta">Tarjouksesi (€)</label><input id="f_hinta" type="number" step="0.01" min="0" required placeholder="0.00" /></div>
+      <div class="field"><label for="f_viesti">Viesti (valinnainen)</label><textarea id="f_viesti" maxlength="500" placeholder="Esim. nouto/toimitustoive"></textarea></div>
+      <div class="form-error" id="formError"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" data-close>Peruuta</button>
+        <button type="submit" class="btn" id="submitBtn">Lähetä tarjous</button>
+      </div>
+    </form>
+    <div class="form-ok" id="formOk"></div>
+  </Modal>
+</Layout>
+
+<style is:global>
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1px; background: var(--line); }
+  .cardtile { background: var(--card); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .cardtile .nimi { font-size: 14px; }
+  .cardtile .numero { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
+  .cardtile .hinta { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 17px; margin-top: 2px; }
+  .cardtile .pending { font-size: 11.5px; color: var(--gold-deep); font-weight: 600; }
+  footer { margin-top: 30px; font-size: 11.5px; color: var(--ink-soft); text-align: center; }
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+
+<script>
+  import { apiRequest } from '../lib/api';
+  import { $, setupModal, showState } from '../lib/dom';
+  import { escapeHtml, eur } from '../lib/format';
+  import { filterCards, renderTabs } from '../lib/tabs';
+  import type { Card } from '../lib/types';
+
+  const API = '/api/cards';
+  let allCards: Card[] = [];
+  let activeCategory = 'Kaikki';
+  let searchTerm = '';
+  let searchDebounce: ReturnType<typeof setTimeout> | undefined;
+  let valittuKorttiId: string | null = null;
+
+  const modal = setupModal('offerModal');
+  const grid = $('grid');
+
+  async function loadCards() {
+    showState('loading');
+    grid.style.display = 'none';
+    try {
+      allCards = await apiRequest<Card[]>(`${API}?myyty=false`);
+      renderAll();
+    } catch (err) {
+      showState('error', 'Korttien lataus epäonnistui: ' + (err as Error).message);
+    }
+  }
+
+  function renderAll() {
+    renderTabs($('tabs'), allCards, activeCategory, (cat) => { activeCategory = cat; renderAll(); });
+    renderGrid();
+  }
+
+  function renderGrid() {
+    const list = filterCards(allCards, activeCategory, searchTerm).sort((a, b) => b.arvo - a.arvo);
+    if (!list.length) {
+      grid.style.display = 'none';
+      showState('empty');
+      return;
+    }
+    showState('none');
+    grid.style.display = 'grid';
+
+    grid.innerHTML = list.map((c) => `
+      <div class="cardtile">
+        <span class="chip">${escapeHtml(c.kategoria)}</span>
+        <div class="nimi">${escapeHtml(c.nimi)}</div>
+        <div class="numero">${escapeHtml(c.numero || '')} · ${escapeHtml(c.kunto || '')}</div>
+        <div class="hinta">${eur(c.arvo)}</div>
+        ${c.tarjottu
+          ? `<div class="pending">Tarjous käsittelyssä</div><button class="btn secondary small" disabled>Tarjous jätetty</button>`
+          : `<button class="btn small" data-open-offer="${c._id}">Tee tarjous</button>`}
+      </div>`).join('');
+
+    grid.querySelectorAll<HTMLElement>('[data-open-offer]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const card = allCards.find((c) => c._id === btn.dataset.openOffer);
+        if (card) avaaTarjousModal(card);
+      });
+    });
+  }
+
+  $('searchInput').addEventListener('input', (e) => {
+    searchTerm = (e.target as HTMLInputElement).value;
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(renderGrid, 120);
+  });
+
+  const form = $<HTMLFormElement>('offerForm');
+
+  function avaaTarjousModal(card: Card) {
+    valittuKorttiId = card._id;
+    $('offerModalSub').textContent = `${card.nimi} ${card.numero || ''}`.trim();
+    form.reset();
+    $('formError').style.display = 'none';
+    $('formOk').style.display = 'none';
+    form.style.display = 'block';
+    modal.open();
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = $('formError');
+    const okEl = $('formOk');
+    errEl.style.display = 'none';
+    const submitBtn = $<HTMLButtonElement>('submitBtn');
+    submitBtn.disabled = true;
+
+    const payload = {
+      ostajan_nimi: $<HTMLInputElement>('f_nimi').value.trim(),
+      ostajan_sahkoposti: $<HTMLInputElement>('f_email').value.trim(),
+      tarjottu_hinta: parseFloat($<HTMLInputElement>('f_hinta').value) || 0,
+      ostajan_viesti: $<HTMLTextAreaElement>('f_viesti').value.trim(),
+    };
+
+    try {
+      await apiRequest(`${API}/${valittuKorttiId}/tarjous`, { method: 'POST', body: JSON.stringify(payload) });
+      form.style.display = 'none';
+      okEl.textContent = 'Tarjous lähetetty! Myyjä ottaa sinuun yhteyttä sähköpostitse jos tarjous hyväksytään.';
+      okEl.style.display = 'block';
+      await loadCards();
+    } catch (err) {
+      errEl.textContent = (err as Error).message;
+      errEl.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  loadCards();
+</script>

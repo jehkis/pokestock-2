@@ -1,0 +1,10 @@
+---
+interface Props {
+  loading?: string;
+  empty?: string;
+}
+const { loading = 'Ladataan kortteja…', empty = 'Ei kortteja tällä haulla.' } = Astro.props;
+---
+<div class="loading" id="loadingState">{loading}</div>
+<div class="empty" id="emptyState" style="display:none;">{empty}</div>
+<div class="error-state" id="errorState" style="display:none;"></div>
