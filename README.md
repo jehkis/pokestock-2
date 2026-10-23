@@ -16,15 +16,31 @@ repossa `pokestock_repo` (`fullstack/`), eikä siihen ole koskettu.
 
 Ylläpitosivun osoite on nyt `/admin` (ennen `/admin.html`).
 
+## Sivut
+
+- `/` kauppa: tumma pelityyli, korttikuvat (TCGdex), 3D-kallistus ja holohohde kiiltokorteille, lajittelu.
+- `/kortti/<id>-<nimi>` korttikohtainen sivu: iso kuva, tiedot, tila (myynnissä / tarjous käsittelyssä / myyty),
+  tarjouslomake, jaettava linkki ja samankaltaiset kortit. Renderöidään palvelimella pyynnön hetkellä, joten
+  tila on aina tuore ja jaettu linkki näyttää kortin kuvan ja hinnan esikatseluna (Open Graph).
+- `/admin` ylläpito.
+
+Kauppa ja ylläpito ovat valmiiksi buildattuja sivuja; korttisivut tekee Astron Node-adapteri (middleware-tila),
+jonka Express ottaa käyttöön `server.js`:ssä (`web/dist/server/entry.mjs`).
+
+Korttien kuvat: `cd api && npm run kuvat` hakee puuttuvat kuvat TCGdexistä (`-- --kaikki` hakee kaikki uudelleen).
+Hintapäivitys ja kortin lisäys ylläpidossa tallentavat kuvan jatkossa itse.
+
 ## Kansiorakenne
 
 ```
 api/                   Express REST API (sama kuin 1.0, ks. pokestock_repo/fullstack/README.md)
 web/                   Astro-frontend
   src/layouts/Layout.astro      <head>, fontit, globaalit tyylit
-  src/components/               Brand, CategoryTabs, ListStates, Modal
-  src/lib/                      api.ts, dom.ts, format.ts, tabs.ts, types.ts
+  src/components/               Brand, CategoryTabs, ListStates, Modal, TarjousModal
+  src/lib/                      api.ts, dom.ts, format.ts, kortti.ts, tabs.ts, tarjous.ts, types.ts
+  src/styles/kauppa.css         kaupan ja korttisivujen tumma teema
   src/pages/index.astro         julkinen kauppa  (/)
+  src/pages/kortti/[id].astro   korttisivu       (/kortti/<id>-<nimi>, palvelimella)
   src/pages/admin.astro         ylläpito         (/admin)
   src/styles/global.css
 Dockerfile             web-build + api samaan imageen
@@ -49,6 +65,7 @@ cd web && npm install && npm run dev
 cp api/.env.example api/.env   # täytä ADMIN_KEY (+ Gmail, jos haluat sähköpostit)
 docker compose up -d --build
 docker compose exec api npm run seed    # 265 korttia, kerran
+docker compose exec api npm run kuvat   # korttikuvat TCGdexistä, kerran
 ```
 
 - Kauppa: http://localhost:3000

@@ -1,0 +1,163 @@
+---
+// Korttikohtainen sivu, renderöidään palvelimella pyynnön hetkellä: tila on aina tuore ja
+// jaettu linkki näyttää kortin kuvan, nimen ja hinnan esikatseluna (Open Graph).
+import Layout from '../../layouts/Layout.astro';
+import TarjousModal from '../../components/TarjousModal.astro';
+import { cardmarketUrl, eur } from '../../lib/format';
+import { isoKuva, kuvaPuuttuu, korttiUrl, tile } from '../../lib/kortti';
+import type { Card } from '../../lib/types';
+import '../../styles/kauppa.css';
+
+export const prerender = false;
+
+const API = process.env.API_URL || `http://localhost:${process.env.PORT || 3000}`;
+const id = (Astro.params.id || '').slice(0, 24);
+
+let kortti: Card | null = null;
+let samankaltaiset: Card[] = [];
+if (/^[0-9a-f]{24}$/.test(id)) {
+  const res = await fetch(`${API}/api/cards/${id}`);
+  if (res.ok) kortti = await res.json();
+}
+
+if (!kortti) {
+  Astro.response.status = 404;
+} else {
+  // Kanoninen osoite: vanha tai väärä nimi osoitteessa ohjataan oikeaan
+  const oikea = korttiUrl(kortti);
+  if (decodeURIComponent(Astro.url.pathname) !== oikea) return Astro.redirect(oikea, 301);
+
+  const res = await fetch(`${API}/api/cards?myyty=false&kategoria=${encodeURIComponent(kortti.kategoria)}`);
+  if (res.ok) {
+    const k = kortti;
+    samankaltaiset = (await res.json() as Card[])
+      .filter((c) => c._id !== k._id)
+      .sort((a, b) => Math.abs(a.arvo - k.arvo) - Math.abs(b.arvo - k.arvo))
+      .slice(0, 4);
+  }
+}
+
+const myyty = !!kortti?.myyty?.tila;
+const tila = !kortti ? '' : myyty ? 'myyty' : kortti.tarjottu ? 'tarjottu' : 'myynnissa';
+const otsikko = kortti ? `${kortti.nimi} ${kortti.numero || ''}`.trim() : 'Korttia ei löytynyt';
+const kuvaus = kortti
+  ? `${kortti.kategoria} · ${kortti.kunto || ''} · ${eur(kortti.arvo)}. ${myyty ? 'Myyty.' : 'Tee tarjous PokeStockissa.'}`
+  : '';
+const kuva = kortti?.kuva ? isoKuva(kortti.kuva) : '';
+---
+<Layout title={`${otsikko} — PokeStock`} bodyClass="kauppa">
+  <Fragment slot="head">
+    {kortti && (
+      <>
+        <meta name="description" content={kuvaus} />
+        <meta property="og:type" content="product" />
+        <meta property="og:site_name" content="PokeStock" />
+        <meta property="og:title" content={`${otsikko} – ${eur(kortti.arvo)}`} />
+        <meta property="og:description" content={kuvaus} />
+        <meta property="og:url" content={Astro.url.href} />
+        {kuva && <meta property="og:image" content={kuva} />}
+        <meta name="twitter:card" content={kuva ? 'summary_large_image' : 'summary'} />
+      </>
+    )}
+  </Fragment>
+
+  <nav class="murupolku"><a href="/">← Kauppa</a>{kortti && <span> / {kortti.kategoria}</span>}</nav>
+
+  {!kortti ? (
+    <section class="ei-loydy">
+      <div class="logo">4<em>0</em>4</div>
+      <p>Korttia ei löytynyt. Se on ehkä poistettu tai linkki on väärä.</p>
+      <a class="btn" href="/">Takaisin kauppaan</a>
+    </section>
+  ) : (
+    <>
+      <section class="kortti-sivu" data-kat={kortti.kategoria}>
+        <div class="kortti-kuva cardtile" data-kat={kortti.kategoria}>
+          <div class="kuva-wrap">
+            {kuva ? <img src={kuva} alt={kortti.nimi} /> : <Fragment set:html={kuvaPuuttuu} />}
+            <div class="holo"></div>
+          </div>
+        </div>
+
+        <div class="kortti-info">
+          <span class="kat-badge">{kortti.kategoria}</span>
+          <h1>{kortti.nimi}</h1>
+          <dl class="ominaisuudet">
+            <div><dt>Numero</dt><dd>{kortti.numero || '–'}</dd></div>
+            <div><dt>Kunto</dt><dd>{kortti.kunto || '–'}</dd></div>
+            <div><dt>Kategoria</dt><dd>{kortti.kategoria}</dd></div>
+          </dl>
+
+          <div class="hintalaatikko">
+            <div class="iso-hinta">{eur(kortti.arvo)}</div>
+            <div class={`tila tila-${tila}`} id="tila">
+              <span class="pulse"></span>
+              {tila === 'myyty' ? 'Myyty' : tila === 'tarjottu' ? 'Tarjous käsittelyssä' : 'Myynnissä'}
+            </div>
+            <div class="toiminnot">
+              {tila === 'myynnissa' && (
+                <button class="btn iso" id="tarjousBtn"
+                  data-kortti={JSON.stringify({ _id: kortti._id, nimi: kortti.nimi, numero: kortti.numero, arvo: kortti.arvo })}>
+                  Tee tarjous
+                </button>
+              )}
+              <button class="btn secondary" id="jaaBtn" type="button">Jaa linkki</button>
+              <a class="btn secondary" href={cardmarketUrl(kortti.nimi)} target="_blank" rel="noopener noreferrer">Cardmarket ↗</a>
+            </div>
+            <p class="huom">Hinta on viitteellinen Cardmarket-trendihinta. Lopullinen hinta sovitaan myyjän kanssa sähköpostitse, sovellus ei käsittele maksuja.</p>
+          </div>
+        </div>
+      </section>
+
+      {samankaltaiset.length > 0 && (
+        <section class="samankaltaiset">
+          <h2>Muita {kortti.kategoria.toLowerCase()}-kortteja</h2>
+          <div class="grid" set:html={samankaltaiset.map(tile).join('')} />
+        </section>
+      )}
+    </>
+  )}
+
+  <footer>Kortit ja hinnat viitteellisiä, lopullinen hinta sovitaan myyjän kanssa. Kuvat: TCGdex.</footer>
+
+  <TarjousModal slot="after" />
+</Layout>
+
+<script>
+  import { $ } from '../../lib/dom';
+  import { elavoita } from '../../lib/kortti';
+  import { setupTarjous } from '../../lib/tarjous';
+
+  elavoita(document);
+
+  const tarjousBtn = document.getElementById('tarjousBtn');
+  const avaaTarjous = setupTarjous(() => {
+    // Kortti varattiin: päivitetään tila ilman uudelleenlatausta
+    const tila = $('tila');
+    tila.className = 'tila tila-tarjottu';
+    tila.lastChild!.textContent = 'Tarjous käsittelyssä';
+    tarjousBtn?.remove();
+  });
+  tarjousBtn?.addEventListener('click', () => avaaTarjous(JSON.parse(tarjousBtn.dataset.kortti!)));
+
+  // Samankaltaisten korttien "Tee tarjous" -napit vievät kortin omalle sivulle
+  document.querySelectorAll<HTMLElement>('.samankaltaiset [data-open-offer]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const linkki = btn.closest('.cardtile')?.querySelector<HTMLAnchorElement>('a.kuva-wrap');
+      if (linkki) location.href = linkki.href;
+    });
+  });
+
+  $('jaaBtn')?.addEventListener('click', async () => {
+    const btn = $<HTMLButtonElement>('jaaBtn');
+    const data = { title: document.title, url: location.href };
+    try {
+      if (navigator.share) await navigator.share(data);
+      else {
+        await navigator.clipboard.writeText(location.href);
+        btn.textContent = 'Linkki kopioitu ✓';
+        setTimeout(() => (btn.textContent = 'Jaa linkki'), 2000);
+      }
+    } catch (e) {}
+  });
+</script>
