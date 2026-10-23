@@ -117,6 +117,11 @@ body.kauppa {
 .murupolku a:hover { color: var(--ink); border-color: var(--neon-2); }
 .kortti-sivu { display: grid; grid-template-columns: minmax(260px, 420px) 1fr; gap: clamp(24px, 5vw, 64px); align-items: start; }
 .kortti-kuva .kuva-wrap { box-shadow: 0 30px 70px rgba(0,0,0,0.6), 0 0 60px color-mix(in srgb, var(--kat) 30%, transparent); }
+.kuvavalinta { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.kuvanappi { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; background: var(--paper-2); border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink-soft); font: inherit; font-size: 12px; cursor: pointer; transition: border-color .15s, color .15s; }
+.kuvanappi img { width: 54px; aspect-ratio: 63 / 88; object-fit: cover; border-radius: 4px; display: block; }
+.kuvanappi:hover { color: var(--ink); }
+.kuvanappi.valittu { border-color: var(--kat); color: var(--ink); }
 .kortti-info { display: flex; flex-direction: column; gap: 14px; padding-top: 8px; }
 .kortti-sivu .kat-badge { --kat: #8d93b8; }
 .kortti-sivu[data-kat="Kiilto"] .kat-badge { --kat: #ffcb05; }

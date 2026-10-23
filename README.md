@@ -18,7 +18,7 @@ Ylläpitosivun osoite on nyt `/admin` (ennen `/admin.html`).
 
 ## Sivut
 
-- `/` kauppa: tumma pelityyli, korttikuvat (TCGdex), 3D-kallistus ja holohohde kiiltokorteille, lajittelu.
+- `/` kauppa: tumma pelityyli, omat valokuvat korteista (puuttuvat TCGdexistä), 3D-kallistus ja holohohde kiiltokorteille, lajittelu.
 - `/kortti/<id>-<nimi>` korttikohtainen sivu: iso kuva, tiedot, tila (myynnissä / tarjous käsittelyssä / myyty),
   tarjouslomake, jaettava linkki ja samankaltaiset kortit. Renderöidään palvelimella pyynnön hetkellä, joten
   tila on aina tuore ja jaettu linkki näyttää kortin kuvan ja hinnan esikatseluna (Open Graph).
@@ -29,6 +29,11 @@ jonka Express ottaa käyttöön `server.js`:ssä (`web/dist/server/entry.mjs`).
 
 Korttien kuvat: `cd api && npm run kuvat` hakee puuttuvat kuvat TCGdexistä (`-- --kaikki` hakee kaikki uudelleen).
 Hintapäivitys ja kortin lisäys ylläpidossa tallentavat kuvan jatkossa itse.
+
+Omat valokuvat: `web/public/kortit/` (216 korttia, rajattu, EXIF/GPS poistettu, `-pieni.webp` ruudukkoon).
+`cd api && npm run omat-kuvat` kytkee ne kortteihin listan `api/seed/omat-kuvat.json` mukaan. Oma kuva
+näytetään ensin; korttisivulla voi vaihtaa viralliseen TCGdex-kuvaan. Lista tehtiin katsomalla kuvat läpi,
+koska alkuperäisten kuvatiedostojen nimet eivät aina vastanneet kuvan korttia (etenkin "(2)"-kopiot).
 
 ## Kansiorakenne
 
@@ -66,6 +71,7 @@ cp api/.env.example api/.env   # täytä ADMIN_KEY (+ Gmail, jos haluat sähköp
 docker compose up -d --build
 docker compose exec api npm run seed    # 265 korttia, kerran
 docker compose exec api npm run kuvat   # korttikuvat TCGdexistä, kerran
+docker compose exec api npm run omat-kuvat   # omat valokuvat kortteihin, kerran
 ```
 
 - Kauppa: http://localhost:3000

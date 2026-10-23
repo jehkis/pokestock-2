@@ -43,7 +43,13 @@ const otsikko = kortti ? `${kortti.nimi} ${kortti.numero || ''}`.trim() : 'Kortt
 const kuvaus = kortti
   ? `${kortti.kategoria} · ${kortti.kunto || ''} · ${eur(kortti.arvo)}. ${myyty ? 'Myyty.' : 'Tee tarjous PokeStockissa.'}`
   : '';
-const kuva = kortti?.kuva ? isoKuva(kortti.kuva) : '';
+// Oma valokuva ensisijaisesti, virallinen TCGdex-kuva vaihtoehtona
+const kuvat = [
+  ...(kortti?.omaKuva ? [{ src: kortti.omaKuva, nimi: 'Oma kuva' }] : []),
+  ...(kortti?.kuva ? [{ src: isoKuva(kortti.kuva), nimi: 'Virallinen' }] : []),
+];
+const kuva = kuvat[0]?.src || '';
+const ogKuva = kuva && new URL(kuva, Astro.url).href;
 ---
 <Layout title={`${otsikko} — PokeStock`} bodyClass="kauppa">
   <Fragment slot="head">
@@ -55,7 +61,7 @@ const kuva = kortti?.kuva ? isoKuva(kortti.kuva) : '';
         <meta property="og:title" content={`${otsikko} – ${eur(kortti.arvo)}`} />
         <meta property="og:description" content={kuvaus} />
         <meta property="og:url" content={Astro.url.href} />
-        {kuva && <meta property="og:image" content={kuva} />}
+        {ogKuva && <meta property="og:image" content={ogKuva} />}
         <meta name="twitter:card" content={kuva ? 'summary_large_image' : 'summary'} />
       </>
     )}
@@ -74,9 +80,19 @@ const kuva = kortti?.kuva ? isoKuva(kortti.kuva) : '';
       <section class="kortti-sivu" data-kat={kortti.kategoria}>
         <div class="kortti-kuva cardtile" data-kat={kortti.kategoria}>
           <div class="kuva-wrap">
-            {kuva ? <img src={kuva} alt={kortti.nimi} /> : <Fragment set:html={kuvaPuuttuu} />}
+            {kuva ? <img id="paaKuva" src={kuva} alt={kortti.nimi} /> : <Fragment set:html={kuvaPuuttuu} />}
             <div class="holo"></div>
           </div>
+          {kuvat.length > 1 && (
+            <div class="kuvavalinta" role="group" aria-label="Kuva">
+              {kuvat.map((k, i) => (
+                <button type="button" class:list={['kuvanappi', { valittu: i === 0 }]} data-src={k.src} aria-pressed={i === 0 ? 'true' : 'false'}>
+                  <img src={k.src} alt="" loading="lazy" />
+                  <span>{k.nimi}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div class="kortti-info">
@@ -118,7 +134,7 @@ const kuva = kortti?.kuva ? isoKuva(kortti.kuva) : '';
     </>
   )}
 
-  <footer>Kortit ja hinnat viitteellisiä, lopullinen hinta sovitaan myyjän kanssa. Kuvat: TCGdex.</footer>
+  <footer>Kortit ja hinnat viitteellisiä, lopullinen hinta sovitaan myyjän kanssa. Kuvat: myyjän omat valokuvat, puuttuvat TCGdex.</footer>
 
   <TarjousModal slot="after" />
 </Layout>
@@ -129,6 +145,18 @@ const kuva = kortti?.kuva ? isoKuva(kortti.kuva) : '';
   import { setupTarjous } from '../../lib/tarjous';
 
   elavoita(document);
+
+  // Oman valokuvan ja virallisen kuvan vaihto
+  const paaKuva = document.getElementById('paaKuva') as HTMLImageElement | null;
+  document.querySelectorAll<HTMLButtonElement>('.kuvanappi').forEach((nappi, _, kaikki) => {
+    nappi.addEventListener('click', () => {
+      if (paaKuva) paaKuva.src = nappi.dataset.src!;
+      kaikki.forEach((n) => {
+        n.classList.toggle('valittu', n === nappi);
+        n.setAttribute('aria-pressed', String(n === nappi));
+      });
+    });
+  });
 
   const tarjousBtn = document.getElementById('tarjousBtn');
   const avaaTarjous = setupTarjous(() => {

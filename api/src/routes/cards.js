@@ -90,8 +90,8 @@ router.get('/:id', async (req, res) => {
 // POST /api/cards  (YLLAPITO)
 router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { nimi, numero, kategoria, kunto, arvo, kuva } = req.body;
-    const card = new Card({ nimi, numero, kategoria, kunto, arvo, kuva });
+    const { nimi, numero, kategoria, kunto, arvo, kuva, omaKuva } = req.body;
+    const card = new Card({ nimi, numero, kategoria, kunto, arvo, kuva, omaKuva });
     await card.save();
     res.status(201).json(card);
   } catch (err) {
@@ -153,10 +153,10 @@ router.post('/paivita-hinnat', requireAdmin, async (req, res) => {
 router.put('/:id', requireAdmin, async (req, res) => {
   if (!isValidId(req.params.id)) return res.status(400).json({ virhe: 'Virheellinen id' });
   try {
-    const { nimi, numero, kategoria, kunto, arvo, kuva } = req.body;
+    const { nimi, numero, kategoria, kunto, arvo, kuva, omaKuva } = req.body;
     const card = await Card.findByIdAndUpdate(
       req.params.id,
-      { nimi, numero, kategoria, kunto, arvo, kuva },
+      { nimi, numero, kategoria, kunto, arvo, kuva, omaKuva },
       { new: true, runValidators: true }
     );
     if (!card) return res.status(404).json({ virhe: 'Korttia ei löytynyt' });

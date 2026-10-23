@@ -47,6 +47,13 @@ const cardSchema = new mongoose.Schema({
     trim: true,
     default: '',
   },
+  // Myyjän oma valokuva kortista (/kortit/<nimi>.webp, pienempi: -pieni.webp).
+  // Näytetään ensisijaisesti; TCGdexin kuva jää varalle.
+  omaKuva: {
+    type: String,
+    trim: true,
+    default: '',
+  },
 }, {
   timestamps: { createdAt: 'lisatty', updatedAt: 'paivitetty' },
 });

@@ -11,12 +11,17 @@ export const korttiUrl = (c: Pick<Card, '_id' | 'nimi'>) => `/kortti/${c._id}-${
 // TCGdex: low.webp ruudukkoon, high.webp korttisivulle
 export const isoKuva = (kuva: string) => kuva.replace(/\/low\.webp$/, '/high.webp');
 
+// Myyjän oma valokuva ensin, TCGdexin kuva varalla. Omasta kuvasta on pienempi -pieni.webp ruudukkoon.
+export const pieniKuva = (c: Pick<Card, 'kuva' | 'omaKuva'>) =>
+  c.omaKuva ? c.omaKuva.replace(/\.webp$/, '-pieni.webp') : c.kuva || '';
+
 export const kuvaPuuttuu = '<div class="kuva-puuttuu"><div class="pallo"></div><small>Ei kuvaa</small></div>';
 
 export function tile(c: Card) {
   const url = korttiUrl(c);
-  const kuva = c.kuva
-    ? `<img src="${escapeHtml(c.kuva)}" alt="${escapeHtml(c.nimi)}" loading="lazy" decoding="async">`
+  const src = pieniKuva(c);
+  const kuva = src
+    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(c.nimi)}" loading="lazy" decoding="async">`
     : kuvaPuuttuu;
   return `
     <article class="cardtile${c.tarjottu ? ' tarjottu' : ''}" data-kat="${escapeHtml(c.kategoria)}">

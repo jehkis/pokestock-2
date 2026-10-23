@@ -8,7 +8,8 @@
     "dev": "node --watch server.js",
     "seed": "node seed/seed.js",
     "test": "node --test test/tcgdex.test.js test/hintahaku.route.test.js",
-    "kuvat": "node seed/kuvat.js"
+    "kuvat": "node seed/kuvat.js",
+    "omat-kuvat": "node seed/omatKuvat.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

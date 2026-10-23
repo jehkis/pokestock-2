@@ -12,6 +12,7 @@ export interface Card {
   myyty?: { tila: boolean; pvm: string | null; hinta: number | null; ostaja: string };
   tarjottu?: boolean;
   kuva?: string;
+  omaKuva?: string;
 }
 
 export interface Tarjous {
