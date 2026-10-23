@@ -1,19 +1,29 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Brand from '../components/Brand.astro';
 import CategoryTabs from '../components/CategoryTabs.astro';
 import ListStates from '../components/ListStates.astro';
 import Modal from '../components/Modal.astro';
 ---
-<Layout title="PokeStock — Kauppa">
-  <div class="hero">
-    <Brand />
-    <div class="tag">Myynnissä olevat Pokémon-kortit — tee tarjous kortista, myyjä ottaa yhteyttä jos tarjous hyväksytään</div>
-    <div style="margin-top:6px;"><a href="/admin">Ylläpito →</a></div>
-  </div>
+<Layout title="PokeStock — Kauppa" bodyClass="kauppa">
+  <header class="hero">
+    <div class="hero-top">
+      <div class="logo">Poke<em>Stock</em></div>
+      <a class="admin-link" href="/admin">Ylläpito →</a>
+    </div>
+    <p class="tag">Pokémon-kortit myynnissä. Tee tarjous kortista, myyjä ottaa yhteyttä jos tarjous hyväksytään.</p>
+    <div class="stats"><span class="pulse"></span><b id="statCount">–</b> korttia myynnissä</div>
+  </header>
 
   <div class="toolbar">
-    <input class="search" id="searchInput" type="text" placeholder="Hae kortin nimellä…" />
+    <label class="search-wrap">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+      <input class="search" id="searchInput" type="search" placeholder="Hae nimellä tai numerolla…" />
+    </label>
+    <select class="sort" id="sortSelect" aria-label="Järjestys">
+      <option value="arvo-desc">Arvokkain ensin</option>
+      <option value="arvo-asc">Edullisin ensin</option>
+      <option value="nimi-asc">Nimi A–Ö</option>
+    </select>
   </div>
 
   <CategoryTabs />
@@ -23,7 +33,7 @@ import Modal from '../components/Modal.astro';
     <ListStates />
   </div>
 
-  <footer>PokeStock — kortit ja hinnat viitteellisiä, lopullinen hinta sovitaan myyjän kanssa.</footer>
+  <footer>Kortit ja hinnat viitteellisiä, lopullinen hinta sovitaan myyjän kanssa. Kuvat: TCGdex.</footer>
 
   <Modal slot="after" id="offerModal" title="Tee tarjous">
     <form id="offerForm">
@@ -42,15 +52,112 @@ import Modal from '../components/Modal.astro';
 </Layout>
 
 <style is:global>
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1px; background: var(--line); }
-  .cardtile { background: var(--card); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
-  .cardtile .nimi { font-size: 14px; }
-  .cardtile .numero { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft); }
-  .cardtile .hinta { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 17px; margin-top: 2px; }
-  .cardtile .pending { font-size: 11.5px; color: var(--gold-deep); font-weight: 600; }
-  footer { margin-top: 30px; font-size: 11.5px; color: var(--ink-soft); text-align: center; }
+  /* Tumma pelityyli: ohittaa global.css:n värit vain kauppasivulla */
+  body.kauppa {
+    --paper: #0a0b14; --paper-2: #151829; --card: #12152a; --ink: #eef0ff; --ink-soft: #8d93b8;
+    --line: #262b47; --gold: #ffcb05; --gold-deep: #ffcb05; --teal: #3ee0b0; --brick: #ff5c7a;
+    --neon: #ffcb05; --neon-2: #7c5cff; --radius: 10px;
+    background:
+      radial-gradient(900px 500px at 15% -10%, rgba(124, 92, 255, 0.28), transparent 60%),
+      radial-gradient(700px 400px at 100% 0%, rgba(255, 203, 5, 0.10), transparent 60%),
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 100% 32px,
+      var(--paper);
+    background-attachment: fixed;
+    color: var(--ink);
+  }
+  .kauppa .wrap { max-width: 1180px; }
+
+  .kauppa .hero { border: 0; padding: 8px 0 4px; }
+  .kauppa .hero-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .kauppa .logo { font-family: 'Chakra Petch', sans-serif; font-weight: 700; font-size: clamp(34px, 6vw, 52px); letter-spacing: 0.01em; line-height: 1; text-transform: uppercase; }
+  .kauppa .logo em { font-style: normal; color: var(--neon); text-shadow: 0 0 24px rgba(255, 203, 5, 0.55); }
+  .kauppa .admin-link { font-size: 12px; color: var(--ink-soft); text-decoration: none; border: 1px solid var(--line); padding: 6px 12px; border-radius: 999px; }
+  .kauppa .admin-link:hover { color: var(--ink); border-color: var(--neon-2); }
+  .kauppa .tag { font-size: 14px; color: var(--ink-soft); margin: 10px 0 0; max-width: 560px; }
+  .kauppa .stats { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 13px; color: var(--ink-soft); background: var(--paper-2); border: 1px solid var(--line); padding: 6px 12px; border-radius: 999px; }
+  .kauppa .stats b { color: var(--ink); font-family: 'Chakra Petch', sans-serif; font-size: 15px; }
+  .kauppa .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 0 rgba(62, 224, 176, 0.6); animation: pulse 2s infinite; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 8px rgba(62, 224, 176, 0); } 100% { box-shadow: 0 0 0 0 rgba(62, 224, 176, 0); } }
+
+  .kauppa .toolbar { margin-top: 26px; }
+  .kauppa .search-wrap { flex: 1; min-width: 200px; position: relative; display: flex; }
+  .kauppa .search-wrap svg { position: absolute; left: 14px; top: 50%; translate: 0 -50%; width: 18px; height: 18px; fill: none; stroke: var(--ink-soft); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+  .kauppa .search, .kauppa .sort { font-size: 15px; padding: 12px 14px; background: var(--paper-2); border: 1px solid var(--line); border-radius: var(--radius); color: var(--ink); font-family: inherit; }
+  .kauppa .search { width: 100%; padding-left: 42px; }
+  .kauppa .search:focus, .kauppa .sort:focus { outline: 2px solid var(--neon-2); outline-offset: 0; }
+
+  .kauppa .tabs { gap: 8px; margin-top: 16px; padding: 0; }
+  .kauppa .tab { top: 0; border: 1px solid var(--line); border-radius: 999px; background: var(--paper-2); padding: 7px 14px; font-size: 13px; color: var(--ink-soft); transition: border-color .15s, color .15s; }
+  .kauppa .tab:hover { color: var(--ink); border-color: var(--neon-2); }
+  .kauppa .tab[data-active="true"] { background: var(--neon); color: #12100a; border-color: var(--neon); box-shadow: 0 0 18px rgba(255, 203, 5, 0.35); }
+  .kauppa .tab[data-active="true"] .n { color: #12100a; opacity: 0.7; }
+
+  .kauppa .panel { background: none; border: 0; margin-top: 20px; }
+  .kauppa .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 22px; }
+
+  /* Korttiruutu */
+  .cardtile { --kat: #8d93b8; display: flex; flex-direction: column; gap: 10px; }
+  .cardtile[data-kat="Kiilto"] { --kat: #ffcb05; }
+  .cardtile[data-kat="Tähti"] { --kat: #b18cff; }
+  .cardtile[data-kat="Erikois"] { --kat: #3ee0e0; }
+  .cardtile[data-kat="Vanhat"] { --kat: #ff9f43; }
+  .cardtile[data-kat="Trainer"] { --kat: #3ee0b0; }
+  .cardtile[data-kat="Pienet sarjat"] { --kat: #5c9dff; }
+  .kuva-wrap {
+    --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 50%;
+    position: relative; aspect-ratio: 63 / 88; border-radius: 4.5% / 3.3%; overflow: hidden;
+    background: var(--paper-2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255,255,255,0.06);
+    transform: perspective(800px) rotateX(var(--rx)) rotateY(var(--ry));
+    transition: transform .35s ease, box-shadow .35s ease;
+  }
+  .kuva-wrap:hover { transition: transform .08s linear, box-shadow .2s ease; box-shadow: 0 18px 40px rgba(0,0,0,0.55), 0 0 26px color-mix(in srgb, var(--kat) 45%, transparent); }
+  .kuva-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Valoheijastus hiiren kohdalla, kaikille korteille */
+  .kuva-wrap::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at var(--mx) var(--my), rgba(255,255,255,0.28), transparent 45%); opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .kuva-wrap:hover::after { opacity: 1; }
+  /* Holohohde kiiltokorteille */
+  .kuva-wrap .holo { position: absolute; inset: 0; pointer-events: none; opacity: 0; mix-blend-mode: color-dodge; transition: opacity .2s;
+    background: linear-gradient(115deg, transparent 20%, rgba(255,0,140,0.35) 36%, rgba(255,230,0,0.35) 45%, rgba(0,255,200,0.35) 54%, rgba(120,90,255,0.35) 63%, transparent 80%) var(--mx) var(--my) / 250% 250%; }
+  .cardtile[data-kat="Kiilto"] .kuva-wrap:hover .holo { opacity: 0.9; }
+
+  .kuva-puuttuu { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 16px;
+    background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--kat) 25%, transparent), transparent 60%), linear-gradient(160deg, #1b1f3a, #0d0f1f); }
+  .kuva-puuttuu .pallo { width: 46%; aspect-ratio: 1; border-radius: 50%; border: 3px solid rgba(255,255,255,0.18); background: linear-gradient(rgba(255,255,255,0.08) 46%, rgba(255,255,255,0.18) 46% 54%, transparent 54%); position: relative; }
+  .kuva-puuttuu .pallo::after { content: ''; position: absolute; inset: 38%; border-radius: 50%; border: 3px solid rgba(255,255,255,0.25); background: #12152a; }
+  .kuva-puuttuu small { position: absolute; bottom: 12px; left: 0; right: 0; font-size: 11px; color: var(--ink-soft); }
+
+  .kat-badge { align-self: flex-start; margin-bottom: 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px; color: var(--kat); background: color-mix(in srgb, var(--kat) 14%, transparent); border: 1px solid color-mix(in srgb, var(--kat) 45%, transparent); }
+  .tarjottu-nauha { position: absolute; left: 0; right: 0; bottom: 14%; z-index: 2; text-align: center; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    padding: 7px 0; background: rgba(10, 11, 20, 0.82); color: var(--neon); backdrop-filter: blur(4px); }
+  .cardtile.tarjottu img { filter: grayscale(0.6) brightness(0.7); }
+
+  .tiedot { display: flex; flex-direction: column; gap: 3px; padding: 0 2px; }
+  .tiedot .nimi { font-size: 15px; font-weight: 600; margin: 0; line-height: 1.25; }
+  .tiedot .numero { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--ink-soft); }
+  .tiedot .ala { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+  .tiedot .hinta { font-family: 'Chakra Petch', sans-serif; font-weight: 700; font-size: 21px; color: var(--neon); }
+
+  .kauppa .btn { border: 0; border-radius: 8px; background: linear-gradient(135deg, var(--neon-2), #a35cff); color: #fff; font-weight: 700; box-shadow: 0 4px 16px rgba(124, 92, 255, 0.35); transition: transform .12s, box-shadow .12s, filter .12s; }
+  .kauppa .btn:hover { background: linear-gradient(135deg, var(--neon-2), #a35cff); filter: brightness(1.15); transform: translateY(-1px); box-shadow: 0 6px 22px rgba(124, 92, 255, 0.5); }
+  .kauppa .btn.secondary { background: transparent; border: 1px solid var(--line); color: var(--ink); box-shadow: none; }
+  .kauppa .btn:disabled { opacity: 0.45; transform: none; filter: none; }
+  .kauppa .btn.small { padding: 8px 12px; font-size: 12.5px; }
+
+  .kauppa .overlay { background: rgba(5, 6, 14, 0.7); backdrop-filter: blur(6px); }
+  .kauppa .modal { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,92,255,0.25); }
+  .kauppa .modal h2 { font-family: 'Chakra Petch', sans-serif; font-size: 24px; text-transform: uppercase; }
+  .kauppa .field input, .kauppa .field textarea { background: var(--paper); border-color: var(--line); border-radius: 8px; }
+
+  .kauppa footer { margin-top: 48px; font-size: 12px; color: var(--ink-soft); text-align: center; }
   @media (max-width: 640px) {
-    .grid { grid-template-columns: 1fr 1fr; }
+    .kauppa .grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+    .tiedot .ala { flex-direction: column; align-items: stretch; }
+    .tiedot .hinta { font-size: 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .kuva-wrap { transform: none !important; transition: none; }
+    .kauppa .pulse { animation: none; }
   }
 </style>
 
@@ -65,17 +172,20 @@ import Modal from '../components/Modal.astro';
   let allCards: Card[] = [];
   let activeCategory = 'Kaikki';
   let searchTerm = '';
+  let sortValue = 'arvo-desc';
   let searchDebounce: ReturnType<typeof setTimeout> | undefined;
   let valittuKorttiId: string | null = null;
 
   const modal = setupModal('offerModal');
   const grid = $('grid');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   async function loadCards() {
     showState('loading');
     grid.style.display = 'none';
     try {
       allCards = await apiRequest<Card[]>(`${API}?myyty=false`);
+      $('statCount').textContent = String(allCards.length);
       renderAll();
     } catch (err) {
       showState('error', 'Korttien lataus epäonnistui: ' + (err as Error).message);
@@ -87,8 +197,39 @@ import Modal from '../components/Modal.astro';
     renderGrid();
   }
 
+  function sorted(list: Card[]) {
+    const [key, dir] = sortValue.split('-');
+    const k = dir === 'asc' ? 1 : -1;
+    return list.sort((a, b) => key === 'nimi' ? a.nimi.localeCompare(b.nimi, 'fi') * k : (a.arvo - b.arvo) * k);
+  }
+
+  function tile(c: Card) {
+    const kuva = c.kuva
+      ? `<img src="${escapeHtml(c.kuva)}" alt="${escapeHtml(c.nimi)}" loading="lazy" decoding="async">`
+      : `<div class="kuva-puuttuu"><div class="pallo"></div><small>Ei kuvaa</small></div>`;
+    return `
+      <article class="cardtile${c.tarjottu ? ' tarjottu' : ''}" data-kat="${escapeHtml(c.kategoria)}">
+        <div class="kuva-wrap">
+          ${kuva}
+          <div class="holo"></div>
+          ${c.tarjottu ? '<span class="tarjottu-nauha">Tarjous käsittelyssä</span>' : ''}
+        </div>
+        <div class="tiedot">
+          <span class="kat-badge">${escapeHtml(c.kategoria)}</span>
+          <h3 class="nimi">${escapeHtml(c.nimi)}</h3>
+          <div class="numero">${escapeHtml(c.numero || '–')} · ${escapeHtml(c.kunto || '')}</div>
+          <div class="ala">
+            <span class="hinta">${eur(c.arvo)}</span>
+            ${c.tarjottu
+              ? `<button class="btn secondary small" disabled>Varattu</button>`
+              : `<button class="btn small" data-open-offer="${c._id}">Tee tarjous</button>`}
+          </div>
+        </div>
+      </article>`;
+  }
+
   function renderGrid() {
-    const list = filterCards(allCards, activeCategory, searchTerm).sort((a, b) => b.arvo - a.arvo);
+    const list = sorted(filterCards(allCards, activeCategory, searchTerm));
     if (!list.length) {
       grid.style.display = 'none';
       showState('empty');
@@ -96,23 +237,35 @@ import Modal from '../components/Modal.astro';
     }
     showState('none');
     grid.style.display = 'grid';
-
-    grid.innerHTML = list.map((c) => `
-      <div class="cardtile">
-        <span class="chip">${escapeHtml(c.kategoria)}</span>
-        <div class="nimi">${escapeHtml(c.nimi)}</div>
-        <div class="numero">${escapeHtml(c.numero || '')} · ${escapeHtml(c.kunto || '')}</div>
-        <div class="hinta">${eur(c.arvo)}</div>
-        ${c.tarjottu
-          ? `<div class="pending">Tarjous käsittelyssä</div><button class="btn secondary small" disabled>Tarjous jätetty</button>`
-          : `<button class="btn small" data-open-offer="${c._id}">Tee tarjous</button>`}
-      </div>`).join('');
+    grid.innerHTML = list.map(tile).join('');
 
     grid.querySelectorAll<HTMLElement>('[data-open-offer]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const card = allCards.find((c) => c._id === btn.dataset.openOffer);
         if (card) avaaTarjousModal(card);
       });
+    });
+    // Kuva, jota ei saatu ladattua, korvataan samalla paikkamerkillä kuin puuttuva kuva
+    grid.querySelectorAll('img').forEach((img) => img.addEventListener('error', () => {
+      img.outerHTML = '<div class="kuva-puuttuu"><div class="pallo"></div><small>Ei kuvaa</small></div>';
+    }, { once: true }));
+    if (!reduceMotion) grid.querySelectorAll<HTMLElement>('.kuva-wrap').forEach(kallistus);
+  }
+
+  // 3D-kallistus ja valoheijastus hiiren mukaan
+  function kallistus(el: HTMLElement) {
+    el.addEventListener('pointermove', (e) => {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width;
+      const y = (e.clientY - r.top) / r.height;
+      el.style.setProperty('--ry', `${(x - 0.5) * 16}deg`);
+      el.style.setProperty('--rx', `${(0.5 - y) * 16}deg`);
+      el.style.setProperty('--mx', `${x * 100}%`);
+      el.style.setProperty('--my', `${y * 100}%`);
+    });
+    el.addEventListener('pointerleave', () => {
+      el.style.setProperty('--rx', '0deg');
+      el.style.setProperty('--ry', '0deg');
     });
   }
 
@@ -121,12 +274,16 @@ import Modal from '../components/Modal.astro';
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(renderGrid, 120);
   });
+  $('sortSelect').addEventListener('change', (e) => {
+    sortValue = (e.target as HTMLSelectElement).value;
+    renderGrid();
+  });
 
   const form = $<HTMLFormElement>('offerForm');
 
   function avaaTarjousModal(card: Card) {
     valittuKorttiId = card._id;
-    $('offerModalSub').textContent = `${card.nimi} ${card.numero || ''}`.trim();
+    $('offerModalSub').textContent = `${card.nimi} ${card.numero || ''} · ${eur(card.arvo)}`.trim();
     form.reset();
     $('formError').style.display = 'none';
     $('formOk').style.display = 'none';

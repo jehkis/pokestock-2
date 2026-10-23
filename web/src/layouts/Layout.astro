@@ -3,8 +3,9 @@ import '../styles/global.css';
 
 interface Props {
   title: string;
+  bodyClass?: string;
 }
-const { title } = Astro.props;
+const { title, bodyClass } = Astro.props;
 ---
 <!doctype html>
 <html lang="fi">
@@ -15,9 +16,9 @@ const { title } = Astro.props;
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet" />
   </head>
-  <body>
+  <body class={bodyClass}>
     <div class="wrap">
       <slot />
     </div>

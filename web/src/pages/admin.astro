@@ -163,6 +163,7 @@ const columns = [
   let sortKey: keyof Card = 'arvo';
   let sortDir = -1;
   let searchDebounce: ReturnType<typeof setTimeout> | undefined;
+  let hakuKuva = ''; // viimeisimmän hinta-arvion kuva, tallennetaan kortin mukana
 
   const table = $('cardTable');
   const tbody = $('tbody');
@@ -336,6 +337,7 @@ const columns = [
 
   $('addBtn').addEventListener('click', () => {
     $('hakuTulos').style.display = 'none';
+    hakuKuva = '';
     modal.open();
   });
 
@@ -372,6 +374,7 @@ const columns = [
 
       const p = result.paras;
       const h = p.hinta;
+      hakuKuva = p.kuva || '';
       const kortti = `<b>${escapeHtml(p.nimi)}</b> #${escapeHtml(p.numero)} — ${escapeHtml(p.setti || 'tuntematon setti')}`;
 
       if (!h || h.arvo === null || h.arvo === undefined) {
@@ -409,6 +412,7 @@ const columns = [
       kategoria: $<HTMLSelectElement>('f_kategoria').value,
       kunto: $<HTMLSelectElement>('f_kunto').value,
       arvo: parseFloat($<HTMLInputElement>('f_arvo').value) || 0,
+      kuva: hakuKuva,
     };
     try {
       const created = await adminRequest<Card>(API, { method: 'POST', body: JSON.stringify(payload) });

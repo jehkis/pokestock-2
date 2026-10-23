@@ -41,6 +41,12 @@ const cardSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  // TCGdexin kuva (low.webp; isompi versio: high.webp samasta polusta)
+  kuva: {
+    type: String,
+    trim: true,
+    default: '',
+  },
 }, {
   timestamps: { createdAt: 'lisatty', updatedAt: 'paivitetty' },
 });

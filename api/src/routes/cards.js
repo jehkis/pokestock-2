@@ -90,8 +90,8 @@ router.get('/:id', async (req, res) => {
 // POST /api/cards  (YLLAPITO)
 router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { nimi, numero, kategoria, kunto, arvo } = req.body;
-    const card = new Card({ nimi, numero, kategoria, kunto, arvo });
+    const { nimi, numero, kategoria, kunto, arvo, kuva } = req.body;
+    const card = new Card({ nimi, numero, kategoria, kunto, arvo, kuva });
     await card.save();
     res.status(201).json(card);
   } catch (err) {
@@ -120,8 +120,10 @@ router.post('/paivita-hinnat', requireAdmin, async (req, res) => {
     for (const card of cards) {
       try {
         const haku = await haeHinta({ nimi: card.nimi, numero: card.numero, holo: card.kategoria === 'Kiilto' });
+        if (haku.loytyi && haku.paras.kuva && !card.kuva) card.kuva = haku.paras.kuva;
         const arvo = haku.loytyi ? haku.paras.hinta?.arvo : null;
         if (arvo === null || arvo === undefined) {
+          if (card.isModified('kuva')) await card.save();
           tulos.ei_loytynyt.push({ id: card._id, nimi: card.nimi, numero: card.numero });
           continue;
         }
@@ -151,10 +153,10 @@ router.post('/paivita-hinnat', requireAdmin, async (req, res) => {
 router.put('/:id', requireAdmin, async (req, res) => {
   if (!isValidId(req.params.id)) return res.status(400).json({ virhe: 'Virheellinen id' });
   try {
-    const { nimi, numero, kategoria, kunto, arvo } = req.body;
+    const { nimi, numero, kategoria, kunto, arvo, kuva } = req.body;
     const card = await Card.findByIdAndUpdate(
       req.params.id,
-      { nimi, numero, kategoria, kunto, arvo },
+      { nimi, numero, kategoria, kunto, arvo, kuva },
       { new: true, runValidators: true }
     );
     if (!card) return res.status(404).json({ virhe: 'Korttia ei löytynyt' });
