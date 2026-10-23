@@ -1,10 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Brand from '../components/Brand.astro';
 import CategoryTabs from '../components/CategoryTabs.astro';
 import ListStates from '../components/ListStates.astro';
 import Modal from '../components/Modal.astro';
 import { KATEGORIAT, KUNNOT } from '../lib/types';
+import '../styles/kauppa.css';
 
 const columns = [
   { key: 'nimi', label: 'Kortti' },
@@ -13,20 +13,19 @@ const columns = [
   { key: 'arvo', label: 'Arvo', num: true },
 ];
 ---
-<Layout title="PokeStock — Ylläpito">
-  <div class="hero admin-hero">
-    <div>
-      <Brand />
-      <div class="tag">Ylläpito — hallinta, tarjoukset</div>
-      <div style="margin-top:6px;"><a href="/">← Julkiseen kauppanäkymään</a></div>
-      <div class="conn" id="connStatus"><span class="dot"></span><span id="connLabel">Yhdistetään rajapintaan…</span></div>
+<Layout title="PokeStock — Ylläpito" bodyClass="kauppa admin">
+  <header class="hero">
+    <div class="hero-top">
+      <div class="logo">Poke<em>Stock</em><span class="admin-merkki">Ylläpito</span></div>
+      <a class="admin-link" href="/">← Kauppaan</a>
     </div>
-    <div class="stat-block">
-      <div class="value" id="totalValue">—</div>
-      <div class="label">kokoelman arvo, myymättä olevat</div>
-      <div class="stat-sub"><span><b id="totalCount">0</b> korttia</span><span><b id="soldCount">0</b> myyty</span></div>
+    <div class="admin-stats">
+      <div class="stat-kortti iso"><span class="label">Kokoelman arvo, myymättä</span><b id="totalValue">—</b></div>
+      <div class="stat-kortti"><span class="label">Kortteja</span><b id="totalCount">0</b></div>
+      <div class="stat-kortti"><span class="label">Myyty</span><b id="soldCount">0</b></div>
     </div>
-  </div>
+    <div class="stats conn" id="connStatus"><span class="pulse"></span><span id="connLabel">Yhdistetään rajapintaan…</span></div>
+  </header>
 
   <div class="panel tarjous-panel" id="tarjousPanel" style="display:none;">
     <div class="tarjous-head">
@@ -37,7 +36,10 @@ const columns = [
   </div>
 
   <div class="toolbar">
-    <input class="search" id="searchInput" type="text" placeholder="Hae kortin nimellä tai numerolla…" />
+    <label class="search-wrap">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+      <input class="search" id="searchInput" type="search" placeholder="Hae nimellä tai numerolla…" />
+    </label>
     <button class="btn secondary" id="refreshBtn" type="button">↻ Päivitä</button>
     <button class="btn secondary" id="paivitaHinnatBtn" type="button">💲 Päivitä kaikki hinnat</button>
     <button class="btn" id="addBtn" type="button">+ Lisää kortti</button>
@@ -45,7 +47,7 @@ const columns = [
 
   <CategoryTabs />
 
-  <div class="panel">
+  <div class="panel taulu">
     <table id="cardTable" style="display:none;">
       <thead>
         <tr>
@@ -103,59 +105,67 @@ const columns = [
 </Layout>
 
 <style is:global>
-  .admin-hero { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px; padding-bottom: 22px; }
-  .admin-hero .tag { font-size: 12.5px; margin-top: 0; }
-  .conn { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
-  .conn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brick); }
-  .conn[data-ok="true"] .dot { background: var(--teal); }
-  .stat-block { text-align: right; }
-  .stat-block .value { font-family: 'Fraunces', serif; font-weight: 600; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
-  .stat-block .label { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
-  .stat-sub { display: flex; gap: 18px; margin-top: 6px; justify-content: flex-end; font-size: 12.5px; color: var(--ink-soft); }
-  .stat-sub b { color: var(--ink); font-weight: 600; }
+  /* Ylläpito kaupan tummalla tyylillä (kauppa.css); tässä vain ylläpidon omat osat */
+  .admin-merkki { display: inline-block; vertical-align: middle; margin-left: 12px; font-size: 13px; letter-spacing: 0.12em; color: var(--neon-2); border: 1px solid color-mix(in srgb, var(--neon-2) 60%, transparent); background: color-mix(in srgb, var(--neon-2) 14%, transparent); padding: 4px 10px; border-radius: 999px; text-shadow: none; }
+  .admin-stats { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+  .stat-kortti { display: flex; flex-direction: column; gap: 4px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; min-width: 120px; }
+  .stat-kortti .label { font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
+  .stat-kortti b { font-family: 'Chakra Petch', sans-serif; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .stat-kortti.iso { background: linear-gradient(160deg, rgba(124,92,255,0.16), rgba(18,21,42,0.9)); }
+  .stat-kortti.iso b { font-size: clamp(30px, 5vw, 40px); color: var(--neon); text-shadow: 0 0 24px rgba(255, 203, 5, 0.35); }
+  .admin .conn .pulse { background: var(--brick); animation: none; }
+  .admin .conn[data-ok="true"] .pulse { background: var(--teal); animation: pulse 2s infinite; }
 
-  .tarjous-panel { margin-top: 18px; border-top: 1px solid var(--ink); border-radius: 6px; }
-  .tarjous-head { padding: 14px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
-  .tarjous-head strong { font-family: 'Fraunces', serif; font-size: 16px; }
-  .tarjous { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .tarjous-panel { margin-top: 22px !important; background: linear-gradient(160deg, rgba(255,203,5,0.10), rgba(18,21,42,0.9)) !important; border: 1px solid color-mix(in srgb, var(--neon) 40%, transparent) !important; border-radius: 16px; overflow: hidden; }
+  .tarjous-head { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+  .tarjous-head strong { font-family: 'Chakra Petch', sans-serif; font-size: 17px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .tarjous-head .chip { background: var(--neon); color: #12100a; border: 0; }
+  .tarjous { padding: 12px 18px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .tarjous:last-child { border-bottom: 0; }
   .tarjous .meta { font-size: 12.5px; color: var(--ink-soft); }
-  .tarjous .meta b { color: var(--ink); }
+  .tarjous .meta b { color: var(--neon); }
   .tarjous .viesti { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
   .tarjous .actions { white-space: nowrap; }
 
+  .admin .toolbar .btn { white-space: nowrap; }
+  .admin .panel.taulu { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
   table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  thead th { text-align: left; font-weight: 600; color: var(--ink-soft); font-size: 11.5px; letter-spacing: 0.02em; padding: 12px 16px; border-bottom: 1px solid var(--line); cursor: pointer; white-space: nowrap; }
+  thead th { text-align: left; font-weight: 600; color: var(--ink-soft); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--paper-2); cursor: pointer; white-space: nowrap; }
   thead th:hover { color: var(--ink); }
   thead th.num { text-align: right; }
-  thead th .arrow { font-size: 10px; margin-left: 3px; color: var(--gold-deep); }
-  tbody td { padding: 11px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  thead th .arrow { font-size: 10px; margin-left: 3px; color: var(--neon); }
+  tbody td { padding: 10px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tbody tr { transition: background .12s; }
+  tbody tr:hover { background: rgba(124, 92, 255, 0.07); }
   tbody tr:last-child td { border-bottom: none; }
   tbody tr.sold { opacity: 0.45; }
   tbody tr.sold .nimi { text-decoration: line-through; }
   .num-cell { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--ink-soft); }
-  td.arvo { text-align: right; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+  td.arvo { text-align: right; font-family: 'Chakra Petch', sans-serif; font-weight: 700; font-size: 16px; color: var(--neon); white-space: nowrap; }
   .row-actions { text-align: right; white-space: nowrap; }
-  .icon-btn { font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: none; border: 1px solid var(--line); border-radius: var(--radius); padding: 5px 10px; color: var(--ink-soft); margin-left: 6px; text-decoration: none; }
-  .icon-btn:hover { border-color: var(--teal); color: var(--teal); }
-  .icon-btn.sold-btn[data-sold="true"] { color: var(--brick); border-color: var(--brick); background: var(--brick-bg); }
+  .icon-btn { font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; color: var(--ink-soft); margin-left: 6px; text-decoration: none; transition: border-color .15s, color .15s; }
+  .icon-btn:hover { border-color: var(--neon-2); color: var(--ink); }
+  .icon-btn.sold-btn[data-sold="true"] { color: var(--brick); border-color: var(--brick); background: color-mix(in srgb, var(--brick) 12%, transparent); }
   .icon-btn.del-btn:hover, .icon-btn.reject { border-color: var(--brick); color: var(--brick); }
   .icon-btn.accept { border-color: var(--teal); color: var(--teal); }
 
   .kuva-th { width: 64px; cursor: default !important; }
-  .kuva-td { width: 64px; padding-top: 6px !important; padding-bottom: 6px !important; }
+  .kuva-td { width: 64px; padding-top: 8px !important; padding-bottom: 8px !important; }
   .kuva-solu { position: relative; width: 46px; }
-  .kuva-btn { display: grid; place-items: center; width: 46px; aspect-ratio: 63 / 88; padding: 0; border: 1px dashed var(--line); border-radius: 4px; background: var(--paper-2, transparent); color: var(--ink-soft); font: inherit; font-size: 10px; line-height: 1.2; cursor: pointer; overflow: hidden; }
+  .kuva-btn { display: grid; place-items: center; width: 46px; aspect-ratio: 63 / 88; padding: 0; border: 1px dashed var(--line); border-radius: 5px; background: var(--paper-2); color: var(--ink-soft); font: inherit; font-size: 10px; line-height: 1.2; cursor: pointer; overflow: hidden; transition: border-color .15s, box-shadow .15s, transform .15s; }
   .kuva-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .kuva-btn.oma { border-style: solid; border-color: var(--teal); }
-  .kuva-btn:hover, .kuva-btn.raahaus { border-color: var(--teal); color: var(--teal); outline: 2px solid var(--teal); }
+  .kuva-btn.oma { border: 1px solid var(--teal); }
+  .kuva-btn:hover, .kuva-btn.raahaus { border-color: var(--neon-2); color: var(--ink); box-shadow: 0 0 14px rgba(124, 92, 255, 0.55); transform: scale(1.06); }
   .kuva-btn.ladataan { opacity: .5; cursor: progress; }
-  .kuva-poista { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper, #fff); color: var(--ink-soft); font-size: 11px; line-height: 1; padding: 0; cursor: pointer; display: none; }
+  .kuva-poista { position: absolute; top: -7px; right: -7px; width: 19px; height: 19px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); font-size: 12px; line-height: 1; padding: 0; cursor: pointer; display: none; }
   .kuva-solu:hover .kuva-poista, .kuva-poista:focus-visible { display: block; }
   .kuva-poista:hover { color: var(--brick); border-color: var(--brick); }
+
+  .kauppa .field select { background: var(--paper); border-color: var(--line); border-radius: 8px; color: var(--ink); }
+  .kauppa .field input[type="file"] { padding: 7px; font-size: 12.5px; color: var(--ink-soft); }
+  .kauppa .field input[type="file"]::file-selector-button { font: inherit; font-weight: 600; margin-right: 10px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper-2); color: var(--ink); cursor: pointer; }
   .kuva-valinta { display: flex; align-items: center; gap: 10px; }
   .kuva-valinta img { width: 52px; aspect-ratio: 63 / 88; object-fit: cover; border-radius: 4px; }
-
-  .modal h2 { font-size: 21px; margin-bottom: 4px; }
   .holo-check { display: flex !important; align-items: center; gap: 6px; font-size: 12px !important; margin-top: 8px; font-weight: 400 !important; }
   .holo-check input { width: auto !important; }
   .hint-inline { font-size: 11.5px; margin-top: 6px; line-height: 1.4; }
@@ -164,10 +174,11 @@ const columns = [
   .hint-inline b { color: var(--ink); }
 
   @media (max-width: 640px) {
-    .admin-hero { align-items: flex-start; }
-    .stat-block { text-align: left; }
-    .stat-sub { justify-content: flex-start; }
-    thead th:nth-child(3), tbody td:nth-child(3) { display: none; }
+    .stat-kortti { flex: 1; min-width: 90px; padding: 12px 14px; }
+    .stat-kortti.iso { flex-basis: 100%; }
+    thead th:nth-child(3), tbody td:nth-child(3), thead th:nth-child(4), tbody td:nth-child(4) { display: none; }
+    tbody td, thead th { padding-left: 10px; padding-right: 10px; }
+    .row-actions .icon-btn:first-child { display: none; }
     .kuva-poista { display: block; }
   }
 </style>
@@ -270,7 +281,7 @@ const columns = [
         <tr class="${isSold ? 'sold' : ''}">
           <td class="kuva-td">${kuvaSolu(c)}</td>
           <td><div class="nimi">${escapeHtml(c.nimi)}</div><div class="num-cell">${escapeHtml(c.numero || '')}</div></td>
-          <td><span class="chip">${escapeHtml(c.kategoria)}</span></td>
+          <td data-kat="${escapeHtml(c.kategoria)}"><span class="kat-badge">${escapeHtml(c.kategoria)}</span></td>
           <td>${escapeHtml(c.kunto || '—')}</td>
           <td class="arvo">${eur(c.arvo)}</td>
           <td class="row-actions">

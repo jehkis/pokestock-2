@@ -42,13 +42,15 @@ body.kauppa {
 .kauppa .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 22px; }
 
 /* Korttiruutu */
-.cardtile { --kat: #8d93b8; display: flex; flex-direction: column; gap: 10px; }
-.cardtile[data-kat="Kiilto"] { --kat: #ffcb05; }
-.cardtile[data-kat="Tähti"] { --kat: #b18cff; }
-.cardtile[data-kat="Erikois"] { --kat: #3ee0e0; }
-.cardtile[data-kat="Vanhat"] { --kat: #ff9f43; }
-.cardtile[data-kat="Trainer"] { --kat: #3ee0b0; }
-.cardtile[data-kat="Pienet sarjat"] { --kat: #5c9dff; }
+.cardtile { display: flex; flex-direction: column; gap: 10px; }
+/* Kategorioiden värit: [data-kat] elementissä tai sen esivanhemmassa (kauppa, korttisivu, ylläpito) */
+[data-kat] { --kat: #8d93b8; }
+[data-kat="Kiilto"] { --kat: #ffcb05; }
+[data-kat="Tähti"] { --kat: #b18cff; }
+[data-kat="Erikois"] { --kat: #3ee0e0; }
+[data-kat="Vanhat"] { --kat: #ff9f43; }
+[data-kat="Trainer"] { --kat: #3ee0b0; }
+[data-kat="Pienet sarjat"] { --kat: #5c9dff; }
 .kuva-wrap {
   --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 50%;
   position: relative; aspect-ratio: 63 / 88; border-radius: 4.5% / 3.3%; overflow: hidden;
@@ -123,13 +125,6 @@ body.kauppa {
 .kuvanappi:hover { color: var(--ink); }
 .kuvanappi.valittu { border-color: var(--kat); color: var(--ink); }
 .kortti-info { display: flex; flex-direction: column; gap: 14px; padding-top: 8px; }
-.kortti-sivu .kat-badge { --kat: #8d93b8; }
-.kortti-sivu[data-kat="Kiilto"] .kat-badge { --kat: #ffcb05; }
-.kortti-sivu[data-kat="Tähti"] .kat-badge { --kat: #b18cff; }
-.kortti-sivu[data-kat="Erikois"] .kat-badge { --kat: #3ee0e0; }
-.kortti-sivu[data-kat="Vanhat"] .kat-badge { --kat: #ff9f43; }
-.kortti-sivu[data-kat="Trainer"] .kat-badge { --kat: #3ee0b0; }
-.kortti-sivu[data-kat="Pienet sarjat"] .kat-badge { --kat: #5c9dff; }
 .kortti-info h1 { font-family: 'Chakra Petch', sans-serif; font-size: clamp(30px, 5vw, 48px); line-height: 1.05; margin: 0; text-transform: uppercase; }
 .ominaisuudet { display: flex; gap: 10px; flex-wrap: wrap; margin: 0; }
 .ominaisuudet div { background: var(--paper-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; min-width: 110px; }
