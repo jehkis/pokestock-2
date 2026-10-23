@@ -7,8 +7,8 @@ import node from '@astrojs/node';
 export default defineConfig({
   vite: {
     server: {
-      // Kehityksessa (npm run dev) /api-kutsut valitetaan Express-rajapinnalle.
-      proxy: { '/api': 'http://localhost:3000' },
+      // Kehityksessa (npm run dev) /api-kutsut ja ylläpidosta ladatut kuvat valitetaan Express-rajapinnalle.
+      proxy: { '/api': 'http://localhost:3000', '/lataukset': 'http://localhost:3000' },
     },
   },
 

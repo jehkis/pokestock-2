@@ -17,6 +17,8 @@ app.use(express.json());
 // Astro-frontendin build (web/dist): valmiit sivut kansiossa client/, palvelinsivut server/entry.mjs
 const WEB_DIST = process.env.WEB_DIST || path.join(__dirname, '..', 'web', 'dist');
 app.use(express.static(path.join(WEB_DIST, 'client')));
+// Ylläpidosta ladatut korttikuvat; nimi vaihtuu joka latauksella, joten saa välimuistittaa pitkään
+app.use('/lataukset', express.static(cardsRouter.KUVAT_DIR, { maxAge: '30d', immutable: true }));
 
 app.get('/api/health', (req, res) => res.json({ ok: true, service: 'pokestock-api' }));
 app.use('/api/cards', cardsRouter);

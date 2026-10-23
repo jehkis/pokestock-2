@@ -24,9 +24,13 @@ services:
     environment:
       - MONGO_URI=mongodb://mongo:27017/pokestock
       - PORT=3000
+    volumes:
+      # ylläpidosta ladatut korttikuvat säilyvät konttia päivitettäessä
+      - kuvat_data:/app/api/lataukset
     depends_on:
       mongo:
         condition: service_healthy
 
 volumes:
   mongo_data:
+  kuvat_data:

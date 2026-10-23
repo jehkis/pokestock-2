@@ -49,6 +49,7 @@ const columns = [
     <table id="cardTable" style="display:none;">
       <thead>
         <tr>
+          <th class="kuva-th" title="Klikkaa kuvaa tai raahaa kuva sen päälle">Kuva</th>
           {columns.map((c) => (
             <th class:list={{ num: c.num }} data-sort={c.key}>{c.label} <span class="arrow" data-arrow={c.key}></span></th>
           ))}
@@ -59,6 +60,7 @@ const columns = [
     </table>
     <ListStates />
   </div>
+  <input type="file" id="kuvaInput" accept="image/*" hidden />
 
   <Modal slot="after" id="addModal" title="Lisää kortti" sub="Kortti tallentuu suoraan tietokantaan.">
     <form id="addForm">
@@ -82,6 +84,14 @@ const columns = [
           <input type="checkbox" id="f_holo" /> Holo / reverse holo -kortti (käytä holo-hintaa)
         </label>
         <div class="hint-inline" id="hakuTulos" style="display:none;"></div>
+      </div>
+      <div class="field">
+        <label for="f_kuva">Oma kuva (valinnainen)</label>
+        <div class="kuva-valinta">
+          <img id="f_kuvaEsikatselu" alt="" hidden />
+          <input id="f_kuva" type="file" accept="image/*" />
+        </div>
+        <div class="hint-inline miss">Kortti rajataan kuvasta automaattisesti, ja sijaintitiedot poistetaan.</div>
       </div>
       <div class="form-error" id="formError"></div>
       <div class="modal-actions">
@@ -131,6 +141,20 @@ const columns = [
   .icon-btn.del-btn:hover, .icon-btn.reject { border-color: var(--brick); color: var(--brick); }
   .icon-btn.accept { border-color: var(--teal); color: var(--teal); }
 
+  .kuva-th { width: 64px; cursor: default !important; }
+  .kuva-td { width: 64px; padding-top: 6px !important; padding-bottom: 6px !important; }
+  .kuva-solu { position: relative; width: 46px; }
+  .kuva-btn { display: grid; place-items: center; width: 46px; aspect-ratio: 63 / 88; padding: 0; border: 1px dashed var(--line); border-radius: 4px; background: var(--paper-2, transparent); color: var(--ink-soft); font: inherit; font-size: 10px; line-height: 1.2; cursor: pointer; overflow: hidden; }
+  .kuva-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .kuva-btn.oma { border-style: solid; border-color: var(--teal); }
+  .kuva-btn:hover, .kuva-btn.raahaus { border-color: var(--teal); color: var(--teal); outline: 2px solid var(--teal); }
+  .kuva-btn.ladataan { opacity: .5; cursor: progress; }
+  .kuva-poista { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); background: var(--paper, #fff); color: var(--ink-soft); font-size: 11px; line-height: 1; padding: 0; cursor: pointer; display: none; }
+  .kuva-solu:hover .kuva-poista, .kuva-poista:focus-visible { display: block; }
+  .kuva-poista:hover { color: var(--brick); border-color: var(--brick); }
+  .kuva-valinta { display: flex; align-items: center; gap: 10px; }
+  .kuva-valinta img { width: 52px; aspect-ratio: 63 / 88; object-fit: cover; border-radius: 4px; }
+
   .modal h2 { font-size: 21px; margin-bottom: 4px; }
   .holo-check { display: flex !important; align-items: center; gap: 6px; font-size: 12px !important; margin-top: 8px; font-weight: 400 !important; }
   .holo-check input { width: auto !important; }
@@ -143,7 +167,8 @@ const columns = [
     .admin-hero { align-items: flex-start; }
     .stat-block { text-align: left; }
     .stat-sub { justify-content: flex-start; }
-    thead th:nth-child(2), tbody td:nth-child(2) { display: none; }
+    thead th:nth-child(3), tbody td:nth-child(3) { display: none; }
+    .kuva-poista { display: block; }
   }
 </style>
 
@@ -151,6 +176,7 @@ const columns = [
   import { ApiError, apiRequest } from '../lib/api';
   import { $, setupModal, showState } from '../lib/dom';
   import { cardmarketUrl, escapeHtml, eur } from '../lib/format';
+  import { pieniKuva } from '../lib/kortti';
   import { filterCards, renderTabs } from '../lib/tabs';
   import type { Card, Tarjous } from '../lib/types';
 
@@ -242,6 +268,7 @@ const columns = [
       const isSold = !!c.myyty?.tila;
       return `
         <tr class="${isSold ? 'sold' : ''}">
+          <td class="kuva-td">${kuvaSolu(c)}</td>
           <td><div class="nimi">${escapeHtml(c.nimi)}</div><div class="num-cell">${escapeHtml(c.numero || '')}</div></td>
           <td><span class="chip">${escapeHtml(c.kategoria)}</span></td>
           <td>${escapeHtml(c.kunto || '—')}</td>
@@ -253,6 +280,36 @@ const columns = [
           </td>
         </tr>`;
     }).join('');
+
+    tbody.querySelectorAll<HTMLButtonElement>('.kuva-btn').forEach((btn) => {
+      const id = btn.dataset.id!;
+      btn.addEventListener('click', () => {
+        kuvaKortille = id;
+        kuvaInput.value = '';
+        kuvaInput.click();
+      });
+      btn.addEventListener('dragover', (e) => { e.preventDefault(); btn.classList.add('raahaus'); });
+      btn.addEventListener('dragleave', () => btn.classList.remove('raahaus'));
+      btn.addEventListener('drop', (e) => {
+        e.preventDefault();
+        btn.classList.remove('raahaus');
+        const tiedosto = e.dataTransfer?.files[0];
+        if (tiedosto) lataaKuva(id, tiedosto);
+      });
+    });
+
+    tbody.querySelectorAll<HTMLButtonElement>('.kuva-poista').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Poistetaanko oma kuva? Kortille jää TCGdexin virallinen kuva, jos sellainen on.')) return;
+        btn.disabled = true;
+        try {
+          paivitaKortti(await adminRequest<Card>(`${API}/${btn.dataset.id}/kuva`, { method: 'DELETE' }));
+        } catch (err) {
+          alert('Kuvan poisto epäonnistui: ' + (err as Error).message);
+          btn.disabled = false;
+        }
+      });
+    });
 
     tbody.querySelectorAll<HTMLButtonElement>('.sold-btn').forEach((btn) => {
       btn.addEventListener('click', async () => {
@@ -287,6 +344,47 @@ const columns = [
       });
     });
   }
+
+  // Oma kuva (vihreä reunus), TCGdexin kuva tai lisäysnappi
+  function kuvaSolu(c: Card) {
+    const src = pieniKuva(c);
+    const otsikko = c.omaKuva ? 'Oma kuva – klikkaa vaihtaaksesi' : 'Lisää oma kuva (klikkaa tai raahaa kuva tähän)';
+    return `
+      <div class="kuva-solu">
+        <button type="button" class="kuva-btn${c.omaKuva ? ' oma' : ''}" data-id="${c._id}" title="${otsikko}" aria-label="${otsikko}: ${escapeHtml(c.nimi)}">
+          ${src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy">` : '+ kuva'}
+        </button>
+        ${c.omaKuva ? `<button type="button" class="kuva-poista" data-id="${c._id}" title="Poista oma kuva" aria-label="Poista oma kuva: ${escapeHtml(c.nimi)}">×</button>` : ''}
+      </div>`;
+  }
+
+  function paivitaKortti(kortti: Card) {
+    const idx = allCards.findIndex((c) => c._id === kortti._id);
+    if (idx >= 0) allCards[idx] = kortti;
+    renderAll();
+  }
+
+  async function lataaKuva(id: string, tiedosto: File) {
+    if (!tiedosto.type.startsWith('image/')) { alert('Valitse kuvatiedosto.'); return; }
+    const btn = tbody.querySelector<HTMLButtonElement>(`.kuva-btn[data-id="${id}"]`);
+    if (btn) { btn.classList.add('ladataan'); btn.disabled = true; }
+    const data = new FormData();
+    data.append('kuva', tiedosto);
+    try {
+      const { kortti } = await adminRequest<{ kortti: Card; rajattu: boolean }>(`${API}/${id}/kuva`, { method: 'POST', body: data });
+      paivitaKortti(kortti);
+    } catch (err) {
+      alert('Kuvan lataus epäonnistui: ' + (err as Error).message);
+      if (btn) { btn.classList.remove('ladataan'); btn.disabled = false; }
+    }
+  }
+
+  const kuvaInput = $<HTMLInputElement>('kuvaInput');
+  let kuvaKortille = '';
+  kuvaInput.addEventListener('change', () => {
+    const tiedosto = kuvaInput.files?.[0];
+    if (tiedosto && kuvaKortille) lataaKuva(kuvaKortille, tiedosto);
+  });
 
   function renderStats() {
     const unsold = allCards.filter((c) => !c.myyty?.tila);
@@ -338,8 +436,20 @@ const columns = [
   $('addBtn').addEventListener('click', () => {
     $('hakuTulos').style.display = 'none';
     hakuKuva = '';
+    naytaEsikatselu();
     modal.open();
   });
+
+  // Lisäyslomakkeen kuvan esikatselu
+  const esikatselu = $<HTMLImageElement>('f_kuvaEsikatselu');
+  function naytaEsikatselu() {
+    const tiedosto = $<HTMLInputElement>('f_kuva').files?.[0];
+    if (esikatselu.src) URL.revokeObjectURL(esikatselu.src);
+    esikatselu.hidden = !tiedosto;
+    if (tiedosto) esikatselu.src = URL.createObjectURL(tiedosto);
+    else esikatselu.removeAttribute('src');
+  }
+  $('f_kuva').addEventListener('change', naytaEsikatselu);
 
   $('hakuBtn').addEventListener('click', async () => {
     const nimi = $<HTMLInputElement>('f_nimi').value.trim();
@@ -415,9 +525,20 @@ const columns = [
       kuva: hakuKuva,
     };
     try {
-      const created = await adminRequest<Card>(API, { method: 'POST', body: JSON.stringify(payload) });
+      let created = await adminRequest<Card>(API, { method: 'POST', body: JSON.stringify(payload) });
+      const tiedosto = $<HTMLInputElement>('f_kuva').files?.[0];
+      if (tiedosto) {
+        const data = new FormData();
+        data.append('kuva', tiedosto);
+        try {
+          created = (await adminRequest<{ kortti: Card }>(`${API}/${created._id}/kuva`, { method: 'POST', body: data })).kortti;
+        } catch (err) {
+          alert('Kortti lisättiin, mutta kuvan lataus epäonnistui: ' + (err as Error).message + '\nVoit lisätä kuvan taulukosta.');
+        }
+      }
       allCards.push(created);
       form.reset();
+      naytaEsikatselu();
       modal.close();
       renderAll();
     } catch (err) {

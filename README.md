@@ -35,6 +35,10 @@ Omat valokuvat: `web/public/kortit/` (216 korttia, rajattu, EXIF/GPS poistettu, 
 näytetään ensin; korttisivulla voi vaihtaa viralliseen TCGdex-kuvaan. Lista tehtiin katsomalla kuvat läpi,
 koska alkuperäisten kuvatiedostojen nimet eivät aina vastanneet kuvan korttia (etenkin "(2)"-kopiot).
 
+Kuvan lataus ylläpidossa: klikkaa taulukon pikkukuvaa tai raahaa kuva sen päälle (myös lisäyslomakkeessa).
+Palvelin kääntää kuvan, rajaa kortin, poistaa EXIF/GPS-tiedot ja tallentaa kaksi webp-kokoa kansioon
+`KUVAT_DIR` (oletus `api/lataukset`, Dockerissa volyymi `kuvat_data`), josta ne tarjoillaan osoitteessa `/lataukset`.
+
 ## Kansiorakenne
 
 ```
